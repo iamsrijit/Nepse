@@ -1,8 +1,9 @@
 name: Run KMC naya automate Notebook Daily
 
+# This will run the workflow on a scheduled basis
 on:
   schedule:
-    - cron: '16 09 * * *'  # Runs daily at 09:15 AM UTC (equivalent to 4:00 PM Nepal Time).
+    - cron: '15 10 * * *'  # Runs at 10:15 AM UTC, which is 4 PM NPT daily.
 
 jobs:
   run_notebook:
@@ -17,10 +18,17 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Dependencies
+      - name: Install Jupyter and dependencies
         run: |
-          pip install jupyter nbconvert  # You can add other dependencies here if needed.
+          pip install jupyter nbconvert
+          # Add other dependencies if your notebook requires them.
 
       - name: Run the notebook
         run: |
-          jupyter nbconvert --to notebook --execute --inplace "KMC naya automate.ipynb"
+          jupyter nbconvert --to notebook --execute --inplace "KMC_naya_automate.ipynb"
+
+      - name: Upload the output (Optional)
+        uses: actions/upload-artifact@v2
+        with:
+          name: notebook-output
+          path: KMC_naya_automate.ipynb
