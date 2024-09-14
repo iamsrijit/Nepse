@@ -25,4 +25,4 @@ jobs:
 
       - name: Run the notebook
         run: |
-          jupyter nbconvert --to notebook --execute "KMC_naya_automate.ipynb"
+          jupyter nbconvert --to notebook --execute "KMC_Naya.ipynb"
