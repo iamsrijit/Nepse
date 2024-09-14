@@ -33,8 +33,12 @@ jobs:
           jupyter nbconvert --to notebook --execute --inplace "KMC_naya_automate.ipynb"
       
       # Optional: Upload notebook output
-      - name: Upload output notebook
-        uses: actions/upload-artifact@v2
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: notebook-output
-          path: KMC_naya_automate.ipynb
+          name: my-artifact
+          path: path/to/artifact
+
+
+      
+      
