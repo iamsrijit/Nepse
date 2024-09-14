@@ -3,7 +3,7 @@ name: Run KMC naya automate Notebook Daily
 on:
   workflow_dispatch:  # Allows manual runs
   schedule:
-    - cron: '15 10 * * *'  # Runs daily at 10:15 AM UTC
+    - cron: '15 10 * * *'  # Adjust the timing as needed
 
 jobs:
   run_notebook:
@@ -20,11 +20,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install jupyter nbconvert gitpython
-
-      - name: Clone Nepse Repository
-        run: |
-          python clone_repo.py
+          pip install jupyter nbconvert
 
       - name: Run the notebook
         run: |
