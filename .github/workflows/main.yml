@@ -18,7 +18,7 @@ jobs:
           pip install jupyter nbconvert GitPython
       - name: Run the notebook
         run: |
-          mkdir -p /home/runner/work/nepse_new
-          jupyter nbconvert --to notebook --execute --inplace "KMC_Naya.ipynb"
+          jupyter nbconvert --to notebook --execute --inplace "KMC_Naya_Automate1.ipynb"
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
