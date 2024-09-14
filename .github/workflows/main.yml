@@ -1,27 +1,24 @@
 name: Run KMC naya automate Notebook Daily
-
 on:
   workflow_dispatch:  # Allows manual runs
   schedule:
-    - cron: '15 10 * * *'  # Adjust the timing as needed
-
+    - cron: '15 10 * * *'  # Runs at 10:15 UTC every day
 jobs:
   run_notebook:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
-
       - name: Install Dependencies
         run: |
-          pip install jupyter nbconvert
-
+          pip install jupyter nbconvert GitPython
       - name: Run the notebook
         run: |
+          mkdir -p /home/runner/work/nepse_new
           jupyter nbconvert --to notebook --execute --inplace "KMC_Naya.ipynb"
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
