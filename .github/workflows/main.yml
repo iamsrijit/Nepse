@@ -1,4 +1,4 @@
-name: Run KMC naya automate Notebook Daily
+name: Run KMC Naya  Notebook Daily
 
 # Run the workflow on a schedule
 on:
