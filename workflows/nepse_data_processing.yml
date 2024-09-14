@@ -30,7 +30,7 @@ jobs:
       # Step 4: Execute the notebook
       - name: Run the notebook
         run: |
-          jupyter nbconvert --to notebook --execute --inplace "KMC_naya_automate.ipynb"
+          jupyter nbconvert --to notebook --execute --inplace "KMC_Naya.ipynb"
       
       # Optional: Upload notebook output
       - name: Upload output notebook
