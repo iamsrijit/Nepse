@@ -1,34 +1,5 @@
 name: Run KMC naya automate Notebook Daily
 
-# This will run the workflow on a scheduled basis
 on:
   schedule:
-    - cron: '15 10 * * *'  # Runs at 10:15 AM UTC, which is 4 PM NPT daily.
-
-jobs:
-  run_notebook:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      - name: Install Jupyter and dependencies
-        run: |
-          pip install jupyter nbconvert
-          # Add other dependencies if your notebook requires them.
-
-      - name: Run the notebook
-        run: |
-          jupyter nbconvert --to notebook --execute --inplace "KMC_naya_automate.ipynb"
-
-      - name: Upload the output (Optional)
-        uses: actions/upload-artifact@v2
-        with:
-          name: notebook-output
-          path: KMC_naya_automate.ipynb
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
