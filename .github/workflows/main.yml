@@ -2,7 +2,7 @@ name: Run KMC naya automate Notebook Daily
 
 on:
   schedule:
-    - cron: '15 10 * * *'  # Runs daily at 09:15 AM UTC (equivalent to 4:00 PM Nepal Time).
+    - cron: '16 09 * * *'  # Runs daily at 09:15 AM UTC (equivalent to 4:00 PM Nepal Time).
 
 jobs:
   run_notebook:
