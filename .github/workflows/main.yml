@@ -18,7 +18,7 @@ jobs:
           pip install jupyter nbconvert GitPython
       - name: Run the notebook
         run: |
-          jupyter nbconvert --to notebook --execute --inplace "Nepse_Full11.ipynb"
+          jupyter nbconvert --to notebook --execute --inplace "Nepse_Full12.ipynb"
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
