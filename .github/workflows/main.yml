@@ -25,4 +25,4 @@ jobs:
     - name: Run Analysis
       env:
         GH_TOKEN: ${{ secrets.QUANTUM_PAT }}
-      run: python New_nepse.py
+      run: python new_nepse.py
