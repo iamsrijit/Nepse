@@ -1,0 +1,16 @@
+name: Scheduled Analysis
+
+on:
+  schedule:
+    - cron: '15 10 * * 0-4'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Quantum Analysis
+        env:
+          GH_TOKEN: ${{ secrets.QUANTUM_PAT }}  # Reference from secrets
+        run: python New_espen.py
