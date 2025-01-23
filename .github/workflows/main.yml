@@ -1,44 +1,39 @@
-name: Quantum Analysis Scheduler
+name: Nepal Stock Analysis
 
 on:
   schedule:
-    - cron: '15 10 * * 0-4'  # Correct 4 PM NPT (Sunday-Thursday)
+    # Runs Sunday-Thursday at 4:00 PM Nepal Time (UTC+05:45)
+    - cron: '15 10 * * 0-4'  # 10:15 UTC = 16:00 NPT
   workflow_dispatch:
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    env:
+      TZ: Asia/Kathmandu  # Set timezone for any datetime operations
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
+    - uses: actions/checkout@v4
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-
+        
     - name: Install dependencies
       run: |
-        pip install jupyter pandas numpy xgboost plotly requests
-        # Add other Colab-specific dependencies here
+        pip install pandas numpy xgboost plotly requests
 
-    - name: Convert Colab notebook to Python script
-      uses: github/scripts/convert-colab-to-python@v1
-      with:
-        notebook: YOUR_NOTEBOOK.ipynb  # Your Colab file
-        output: colab_script.py
-
-    - name: Run Analysis
+    - name: Run Nepse Analysis
       env:
-        GITHUB_TOKEN: ${{ secrets.QUANTUM_PAT }}  # SECURE token reference
-      run: python colab_script.py
+        GH_TOKEN: ${{ secrets.QUANTUM_PAT }}  # Secure token reference
+      run: python New_espen.py
 
-    - name: Commit results
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        git add .
-        git commit -m "Auto-commit analysis results" || echo "No changes"
-        git push
+    - name: Upload Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: analysis-results
+        path: |
+          *.csv
+          *.html
+          *.png
