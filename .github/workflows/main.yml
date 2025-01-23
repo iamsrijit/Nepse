@@ -1,16 +1,15 @@
-name: Nepal Stock Analysis
+name: NEPSE Quantum Analysis
 
 on:
   schedule:
-    # Runs Sunday-Thursday at 4:00 PM Nepal Time (UTC+05:45)
-    - cron: '15 10 * * 0-4'  # 10:15 UTC = 16:00 NPT
+    - cron: '15 10 * * 0-4'  # 4 PM NPT Sun-Thu
   workflow_dispatch:
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
     env:
-      TZ: Asia/Kathmandu  # Set timezone for any datetime operations
+      TZ: Asia/Kathmandu
     
     steps:
     - uses: actions/checkout@v4
@@ -21,19 +20,9 @@ jobs:
         python-version: '3.10'
         
     - name: Install dependencies
-      run: |
-        pip install pandas numpy xgboost plotly requests
-
-    - name: Run Nepse Analysis
+      run: pip install pandas numpy xgboost scipy requests
+      
+    - name: Run Analysis
       env:
-        GH_TOKEN: ${{ secrets.QUANTUM_PAT }}  # Secure token reference
-      run: python New_espen.py
-
-    - name: Upload Results
-      uses: actions/upload-artifact@v3
-      with:
-        name: analysis-results
-        path: |
-          *.csv
-          *.html
-          *.png
+        GH_TOKEN: ${{ secrets.QUANTUM_PAT }}
+      run: python New_nepse.py
