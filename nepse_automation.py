@@ -47,7 +47,7 @@ try:
 
 
 # Encode CSV data in Base64
-csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+# csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
 
 # GitHub API request payload
 data = {
