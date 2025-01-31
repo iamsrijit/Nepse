@@ -18,10 +18,10 @@ print("All required packages are installed and imported successfully!")
 
 
 
-!pip install nepse-scraper
-!pip install xlsxwriter
-!pip install gitpython
-!pip install gitpython pandas
+# !pip install nepse-scraper
+# !pip install xlsxwriter
+# !pip install gitpython
+# !pip install gitpython pandas
 
 """**Daily Nepse Scrapping**"""
 
