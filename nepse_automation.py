@@ -400,10 +400,6 @@ import os
 from datetime import datetime
 import base64
 
-# Assuming you have finall_df DataFrame containing your data
-# Assuming finall_df is defined elsewhere in your code
-# token = os.getenv("GH_TOKEN")
-
 try:
     # Convert finall_df to CSV format
     csv_data = finall_df.to_csv(index=False)
@@ -417,9 +413,7 @@ try:
     # Define the file name with today's date
     file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
 
-    # Define your personal access token
-    # token = 'TOKEN'
-
+  
     # Define the file path in the repository
     file_path = file_name
 
@@ -430,11 +424,7 @@ try:
     # upload_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
 
 
-    # Prepare the headers with the authorization token
-    # headers = {
-    #     'Authorization': f'token {token}',
-    #     'Accept': 'application/vnd.github.v3+json'
-    # }
+    
 
 
     headers = {
@@ -463,6 +453,7 @@ try:
 
 except Exception as e:
     print('An error occurred:', e)
+
 
 
  
