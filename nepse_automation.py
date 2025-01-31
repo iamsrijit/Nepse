@@ -399,7 +399,9 @@ import requests
 import os
 from datetime import datetime
 import base64
-
+file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+file_path = file_name
+upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 try:
     # Convert finall_df to CSV format
     csv_data = finall_df.to_csv(index=False)
@@ -410,18 +412,18 @@ try:
     # Define the GitHub repository URL
     repo_url = 'https://github.com/iamsrijit/Nepse'
 
-    # Define the file name with today's date
-    file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+    # # Define the file name with today's date
+    # # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
 
   
-    # Define the file path in the repository
-    file_path = file_name
+    # # Define the file path in the repository
+    # file_path = file_name
 
-    # Define the API URL for uploading files to GitHub
-     upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
-    # cHANGED ABOVE LINE
+    # # Define the API URL for uploading files to GitHub
+    #  upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+    # # cHANGED ABOVE LINE
 
-    # upload_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
+    # # upload_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
 
 
     
