@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os, requests
+import base64
 
 
 # List of required packages
