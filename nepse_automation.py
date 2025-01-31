@@ -92,18 +92,23 @@ else:
 
 first.head()
 
-token = os.getenv('GH_TOKEN')
-def upload_to_github(file_path, content):
-    # Make sure the token is available
-    if token is None:
-        raise ValueError("GitHub token (GH_TOKEN) is not defined. Please set the token as an environment variable.")
+import os
+
+# Get GitHub token from environment variable
+GH_TOKEN = os.getenv("GH_TOKEN")
+
+if not GH_TOKEN:
+    raise ValueError("GitHub Token not found. Please set it as an environment variable.")
+
+headers = {"Authorization": f"token {GH_TOKEN}"}
+
     
     # GitHub API URL
     upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
     
     # Define the headers with authentication token
     headers = {
-        'Authorization': f'token {token}',
+        'Authorization': f'token {GH_TOKEN}',
         'Accept': 'application/vnd.github.v3+json',
     }
 
@@ -320,7 +325,7 @@ import base64
 
 # Assuming you have finall_df DataFrame containing your data
 # Assuming finall_df is defined elsewhere in your code
-token = os.getenv("GITHUB_TOKEN")
+
 
 try:
     # Convert finall_df to CSV format
@@ -335,8 +340,8 @@ try:
     # Define the file name with today's date
     file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
 
-    # Define your personal access token
-    # token = 'TOKEN'
+    # Define your personal access 
+   
 
     # Define the file path in the repository
     file_path = f'/{file_name}'
@@ -348,11 +353,7 @@ try:
     upload_url = f"https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}"
 
 
-    # Prepare the headers with the authorization token
-    # headers = {
-    #     'Authorization': f'token {token}',
-    #     'Accept': 'application/vnd.github.v3+json'
-    # }
+    
 
 
     headers = {
@@ -499,9 +500,7 @@ try:
     # Define the file name with today's date
     file_name = f'EMA_Cross_for_{datetime.today().strftime("%Y-%m-%d")}.csv'
 
-    # Define your personal access token
-    # token = 'TOKEN'
-
+    
     # Define the file path in the repository
     file_path = f'/{file_name}'
 
@@ -510,14 +509,10 @@ try:
 
     # Prepare the headers with the authorization token
     headers = {
-        'Authorization': f'token {token}',
+        'Authorization': f'token {GH_TOKEN}',
         'Accept': 'application/vnd.github.v3+json'
     }
-# CHANGED ABOVE
-    # headers = {
-    # 'Authorization': f'Bearer {token}',
-    # 'Accept': 'application/vnd.github.v3+json'
-    # }
+
 
 
     # Get the SHA of the existing file if it exists
@@ -560,33 +555,6 @@ except Exception as e:
 
 """**Delete from Github**"""
 
-# from git import Repo
-
-# # Replace with your GitHub repository URL
-# repo_url = 'https://github.com/iamsrijit/Nepse.git'
-# repo_dir = '/content/nepse/new/new14980'  # New directory to clone the repository
-
-# # Clone the repository
-# repo = Repo.clone_from(repo_url, repo_dir)
-
-# # Set the name of the file to be deletedhttps://github.com/iamsrijit/Nepse/blob/a40ff94cbbaed3c2bbd07170c3ed4454d495be79/Nepse%20%20data%202022%20to%202024%20may.xlsx
-# file_to_delete = 'espen_2025-01-31.csv'  # Replace with the file you want to delete
-
-# # Remove the file from the repository
-# file_path = f'{repo_dir}/{file_to_delete}'
-# repo.index.remove([file_path], working_tree=True)
-
-# # Commit the deletion
-# repo.index.commit(f'Deleted {file_to_delete}')
-
-# # Set up the remote repository with authentication
-# origin = repo.remote(name='origin')
-# origin.set_url('https://iamsrijit:{token}}@github.com/iamsrijit/Nepse.git')
-
-# # Push the changes to GitHub
-# origin.push()
-
-# print(f"{file_to_delete} has been deleted from GitHub repository.")
 
 from git import Repo
 import os
@@ -643,7 +611,7 @@ if latest_espen_file:
 try:
     repo.index.commit('Deleted old EMA_Cross_for_ and espen_ files')
     origin = repo.remote(name='origin')
-    origin.set_url('https://iamsrijit:{token}@github.com/iamsrijit/Nepse.git')
+    origin.set_url('https://iamsrijit:{GH_TOKEN}@github.com/iamsrijit/Nepse.git')
     origin.push()
     print("Pushed changes to GitHub.")
 except Exception as e:
