@@ -31,12 +31,19 @@ from nepse_scraper import Nepse_scraper
 import pandas as pd
 from datetime import datetime
 
-    # GitHub API request payload (for file upload)
+# Encode CSV data in Base64
+csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+
+# GitHub API request payload
 data = {
     'message': 'Uploading file via automation',
-    'content': csv_data_base64,  # Base64 encoded content of the CSV file
- 
+    'content': csv_data_base64,  # Corrected variable name
+    'branch': 'main'  # Specify the branch
 }
+
+# Upload the file to GitHub
+response = requests.put(upload_url, headers=headers, json=data)
+
 # Create an object from the Nepse_scraper class
 request_obj = Nepse_scraper()
 
