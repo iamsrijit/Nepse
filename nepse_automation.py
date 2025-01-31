@@ -31,6 +31,11 @@ from nepse_scraper import Nepse_scraper
 import pandas as pd
 from datetime import datetime
 
+    # GitHub API request payload (for file upload)
+data = {
+    'message': 'Uploading file via automation',
+    'content': content,  # Base64 encoded content of the file
+}
 # Create an object from the Nepse_scraper class
 request_obj = Nepse_scraper()
 
@@ -45,11 +50,7 @@ filtered_data = []
 
 # Define the column names
 
-    # GitHub API request payload (for file upload)
-data = {
-    'message': 'Uploading file via automation',
-    'content': content,  # Base64 encoded content of the file
-}
+
 columns = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume']
 # Iterate over each item in the 'content' section
 for item in content_data:
