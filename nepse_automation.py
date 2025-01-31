@@ -34,7 +34,8 @@ from datetime import datetime
     # GitHub API request payload (for file upload)
 data = {
     'message': 'Uploading file via automation',
-    'content': content,  # Base64 encoded content of the file
+    'content': csv_data_base64,  # Base64 encoded content of the CSV file
+ 
 }
 # Create an object from the Nepse_scraper class
 request_obj = Nepse_scraper()
