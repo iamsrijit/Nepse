@@ -131,7 +131,9 @@ headers = {
     # else:
     #     print(f"Failed to upload file: {response.status_code}, {response.text}")
 
-file_path = f'/{file_name}'
+# file_path = f'/{file_name}'
+file_path = file_name  # Remove the leading slash
+
 
 upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 
