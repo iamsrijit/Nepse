@@ -45,7 +45,7 @@ try:
 except Exception as e:
     print(f"An error occurred: {e}")  # Handle the exception
 
-file_path = file_name
+    file_path = file_name
 upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
 # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 response = requests.put(upload_url, headers=headers, json=payload)
