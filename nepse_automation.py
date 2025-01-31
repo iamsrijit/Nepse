@@ -40,6 +40,8 @@ try:
 except Exception as e:
     print(f"An error occurred: {e}")  # Handle the exception
 
+response = requests.put(upload_url, headers=headers, json=payload)
+
 
 # Your script logic goes here
 # print("All required packages are installed and imported successfully!")
@@ -439,7 +441,7 @@ import base64
 
 
     # Send a PUT request to upload the file
-    response = requests.put(upload_url, headers=headers, json=payload)
+    
 
     # Check the response status
     if response.status_code == 200:
