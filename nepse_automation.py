@@ -17,9 +17,23 @@ import git
 import pandas as pd
 
 # Your script logic goes here
-print("All required packages are installed and imported successfully!")
+# print("All required packages are installed and imported successfully!")
 
+try:
+    # Convert finall_df to CSV format
+    csv_data = finall_df.to_csv(index=False)
 
+    # Encode the CSV data to Base64
+    csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+
+    # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+
+    # Define the GitHub repository URL
+    repo_url = 'https://github.com/iamsrijit/Nepse'
+
+    # Define the file name with today's date
+    # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+    file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
 # !pip install nepse-scraper
 # !pip install xlsxwriter
@@ -344,21 +358,21 @@ import base64
 # Assuming finall_df is defined elsewhere in your code
 
 
-try:
-    # Convert finall_df to CSV format
-    csv_data = finall_df.to_csv(index=False)
+# try:
+#     # Convert finall_df to CSV format
+#     csv_data = finall_df.to_csv(index=False)
 
-    # Encode the CSV data to Base64
-    csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+#     # Encode the CSV data to Base64
+#     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
 
-    # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+#     # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
 
-    # Define the GitHub repository URL
-    repo_url = 'https://github.com/iamsrijit/Nepse'
+#     # Define the GitHub repository URL
+#     repo_url = 'https://github.com/iamsrijit/Nepse'
 
-    # Define the file name with today's date
-    # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
-    file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
+#     # Define the file name with today's date
+#     # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+#     file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
 
     # Define your personal access 
