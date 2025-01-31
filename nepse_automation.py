@@ -83,7 +83,7 @@ if not first.empty:
     today_day_name = datetime.now().strftime('%A')
 
     # Save DataFrame to CSV with today's day name in the filename
-    file_name = f'nepse_{today_day_name}.csv'
+    file_name = f"nepse_{today_day_name}.csv"
     first.to_csv(file_name, index=False)
 
     print(f"Data saved to '{file_name}'")
@@ -100,21 +100,18 @@ GH_TOKEN = os.getenv("GH_TOKEN")
 if not GH_TOKEN:
     raise ValueError("GitHub Token not found. Please set it as an environment variable.")
 
-headers = {
-    "Authorization": f"token {GH_TOKEN}",
-    "Accept": "application/vnd.github.v3+json",
 
-}
 
     
-    # GitHub API URL
+
     
     
     # Define the headers with authentication token
-    # headers = {
-    #     'Authorization': f'token {GH_TOKEN}',
-    #     'Accept': 'application/vnd.github.v3+json',
-    # }
+   headers = {
+    'Authorization': f'token {GH_TOKEN}',
+    'Accept': 'application/vnd.github.v3+json'
+}
+
 
     # GitHub API request payload (for file upload)
     # data = {
@@ -135,7 +132,7 @@ headers = {
 file_path = file_name  # Remove the leading slash
 
 
-upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
 
 import pandas as pd
 import requests
@@ -343,11 +340,15 @@ try:
     # Encode the CSV data to Base64
     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
 
+    # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+
     # Define the GitHub repository URL
     repo_url = 'https://github.com/iamsrijit/Nepse'
 
     # Define the file name with today's date
-    file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+    # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+    file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
+
 
     # Define your personal access 
    
@@ -365,16 +366,29 @@ try:
     
 
 
-    headers = {
-        'Authorization': f'token {GH_TOKEN}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
+    # headers = {
+    #     'Authorization': f'token {GH_TOKEN}',
+    #     'Accept': 'application/vnd.github.v3+json'
+    # }
+
+
+    
     # Prepare the payload with file content
     payload = {
         'message': f'Upload {file_name}',
         'content': csv_data_base64,
         'branch': 'main'  # Specify the branch you want to upload to
     }
+    
+    response = requests.put(upload_url, headers=headers, json=data)
+
+
+
+#     headers = {
+#     'Authorization': f'token {GH_TOKEN}',
+#     'Accept': 'application/vnd.github.v3+json'
+# }
+
 
     # Send a PUT request to upload the file
     response = requests.put(upload_url, headers=headers, json=payload)
@@ -501,13 +515,15 @@ try:
     csv_data = combinedd_df.to_csv(index=False)
 
     # Encode the CSV data to Base64
+    # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+
 
     # Define the GitHub repository URL
     repo_url = 'https://github.com/iamsrijit/Nepse'
 
     # Define the file name with today's date
-    file_name = f'EMA_Cross_for_{datetime.today().strftime("%Y-%m-%d")}.csv'
+    file_name = f"EMA_Cross_for_{datetime.today().strftime("%Y-%m-%d")}.csv"
 
     
     # Define the file path in the repository
@@ -517,10 +533,10 @@ try:
     upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 
     # Prepare the headers with the authorization token
-    headers = {
-        'Authorization': f'token {GH_TOKEN}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
+    # headers = {
+    #     'Authorization': f'token {GH_TOKEN}',
+    #     'Accept': 'application/vnd.github.v3+json'
+    # }
 
 
 
