@@ -23,35 +23,44 @@ from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 # Now import the installed packages
 
-file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
+# file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
-try:
-    # Convert finall_df to CSV format
-    csv_data = finall_df.to_csv(index=False)
+# try:
+#     # Convert finall_df to CSV format
+#     csv_data = finall_df.to_csv(index=False)
 
-    # Encode the CSV data to Base64
-    csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+#     # Encode the CSV data to Base64
+#     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
 
-    # Define the GitHub repository URL
-    repo_url = 'https://github.com/iamsrijit/Nepse'
+#     # Define the GitHub repository URL
+#     repo_url = 'https://github.com/iamsrijit/Nepse'
 
-    # Define the file name with today's date
-    # file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
+#     # Define the file name with today's date
+#     # file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
-    # GitHub API request payload
-    payload = {
-        'message': 'Uploading file via automation',
-        'content': csv_data_base64,  # Corrected variable name
-        'branch': 'main'  # Specify the branch
-    }
+#     # GitHub API request payload
+#     payload = {
+#         'message': 'Uploading file via automation',
+#         'content': csv_data_base64,  # Corrected variable name
+#         'branch': 'main'  # Specify the branch
+#     }
 
-except Exception as e:
-    print(f"An error occurred: {e}")  # Handle the exception
+# except Exception as e:
+#     print(f"An error occurred: {e}")  # Handle the exception
 
-file_path = file_name
-upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
-# upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
-response = requests.put(upload_url, headers=headers, json=payload)
+# file_path = file_name
+# upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
+# # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+
+# headers = {
+#     'Authorization': f'token {GH_TOKEN}',
+#     'Accept': 'application/vnd.github.v3+json'
+# }
+
+token = os.getenv("GH_TOKEN")
+
+
+# response = requests.put(upload_url, headers=headers, json=payload)
 
 
 # Your script logic goes here
@@ -158,11 +167,11 @@ first.head()
 
 import os
 
-# Get GitHub token from environment variable
-GH_TOKEN = os.getenv("GH_TOKEN")
+# # Get GitHub token from environment variable
+# GH_TOKEN = os.getenv("GH_TOKEN")
 
-if not GH_TOKEN:
-    raise ValueError("GitHub Token not found. Please set it as an environment variable.")
+# if not GH_TOKEN:
+#     raise ValueError("GitHub Token not found. Please set it as an environment variable.")
 
 
 
@@ -171,10 +180,7 @@ if not GH_TOKEN:
     
     
     # Define the headers with authentication token
-headers = {
-    'Authorization': f'token {GH_TOKEN}',
-    'Accept': 'application/vnd.github.v3+json'
-}
+
 
 
 
@@ -189,10 +195,12 @@ headers = {
     #     print(f"Failed to upload file: {response.status_code}, {response.text}")
 
 # file_path = f'/{file_name}'
-file_path = file_name  # Remove the leading slash
+
+# file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
+# file_path = file_name  # Remove the leading slash
 
 
-# upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
+# # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
 # upload_url = f"https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}"
 
 import pandas as pd
@@ -251,13 +259,14 @@ except Exception as e:
 
 secondss.head()
 
-"""**merging ma date anusar milaunu paryoo**
+# """**merging ma date anusar milaunu paryoo**
 
-"""
+# """
 
 import pandas as pd
 
 # Assuming 'first' and 'secondss' are your DataFrames
+
 dfs = [first, secondss]
 
 # Create an empty DataFrame to store the final results
@@ -311,7 +320,7 @@ else:
 
 print(finall_df.head())
 
-"""**exclude mutual funds **"""
+# """**exclude mutual funds **"""
 
 import pandas as pd
 
@@ -383,7 +392,8 @@ else:
 
 print(finall_df.head())
 
-"""**Uploading aaile samma ko merged data in github**"""
+# """**Uploading aaile samma ko merged data in github**"""
+
 
 import requests
 import os
@@ -392,80 +402,68 @@ import base64
 
 # Assuming you have finall_df DataFrame containing your data
 # Assuming finall_df is defined elsewhere in your code
+# token = os.getenv("GH_TOKEN")
 
+try:
+    # Convert finall_df to CSV format
+    csv_data = finall_df.to_csv(index=False)
 
-# try:
-#     # Convert finall_df to CSV format
-#     csv_data = finall_df.to_csv(index=False)
+    # Encode the CSV data to Base64
+    csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
 
-#     # Encode the CSV data to Base64
-#     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+    # Define the GitHub repository URL
+    repo_url = 'https://github.com/iamsrijit/Nepse'
 
-#     # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+    # Define the file name with today's date
+    file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
 
-#     # Define the GitHub repository URL
-#     repo_url = 'https://github.com/iamsrijit/Nepse'
-
-#     # Define the file name with today's date
-#     # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
-#     file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
-
-
-    # Define your personal access 
-   
+    # Define your personal access token
+    # token = 'TOKEN'
 
     # Define the file path in the repository
-    # file_path = f'/{file_name}'
+    file_path = f'/{file_name}'
 
     # Define the API URL for uploading files to GitHub
-     # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+     upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
     # cHANGED ABOVE LINE
 
-    # upload_url = f"https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}"
+    # upload_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
 
 
-    
-
-
+    # Prepare the headers with the authorization token
     # headers = {
-    #     'Authorization': f'token {GH_TOKEN}',
+    #     'Authorization': f'token {token}',
     #     'Accept': 'application/vnd.github.v3+json'
     # }
 
 
-    
+    headers = {
+        'Authorization': f'token {GH_TOKEN}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
     # Prepare the payload with file content
-    # payload = {
-    #     'message': f'Upload {file_name}',
-    #     'content': csv_data_base64,
-    #     'branch': 'main'  # Specify the branch you want to upload to
-    # }
-    
-    # response = requests.put(upload_url, headers=headers, json=data)
-
-
-
-#     headers = {
-#     'Authorization': f'token {GH_TOKEN}',
-#     'Accept': 'application/vnd.github.v3+json'
-# }
-
+    payload = {
+        'message': f'Upload {file_name}',
+        'content': csv_data_base64,
+        'branch': 'main'  # Specify the branch you want to upload to
+    }
 
     # Send a PUT request to upload the file
-    
+    response = requests.put(upload_url, headers=headers, json=payload)
 
-#     # Check the response status
-#     if response.status_code == 200:
-#         print(f'File {file_name} uploaded successfully!')
-#     elif response.status_code == 422:
-#         print(f'Failed to upload {file_name}. Status code: 422 Unprocessable Entity')
-#         print('Error Message:', response.json()['message'])
-#     else:
-#         print(f'Failed to upload {file_name}. Status code: {response.status_code}')
-#         # print('Response Content:', response.text)
+    # Check the response status
+    if response.status_code == 200:
+        print(f'File {file_name} uploaded successfully!')
+    elif response.status_code == 422:
+        print(f'Failed to upload {file_name}. Status code: 422 Unprocessable Entity')
+        print('Error Message:', response.json()['message'])
+    else:
+        print(f'Failed to upload {file_name}. Status code: {response.status_code}')
+        # print('Response Content:', response.text)
 
-# except Exception as e:
-#     print('An error occurred:', e)
+except Exception as e:
+    print('An error occurred:', e)
+
 
  
 
@@ -551,9 +549,8 @@ print(combinedd_df[['Symbol', 'Date', 'Close']])
 combinedd_df.to_csv('latest_valid_ema_crossovers.csv', index=False)
 print("\nLatest valid crossovers saved to 'latest_valid_ema_crossovers.csv'.")
 
-combinedd_df.head()
 
-"""**mathi ko result sab maile combined_df ma store garnu paryoo**"""
+
 
 import requests
 from datetime import datetime
@@ -567,31 +564,33 @@ try:
     csv_data = combinedd_df.to_csv(index=False)
 
     # Encode the CSV data to Base64
-    # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
-
 
     # Define the GitHub repository URL
     repo_url = 'https://github.com/iamsrijit/Nepse'
 
     # Define the file name with today's date
-    # file_name = f"EMA_Cross_for_{datetime.today().strftime("%Y-%m-%d")}.csv"
-    file_name = f"EMA_Cross_for_{datetime.today().strftime('%Y-%m-%d')}.csv"
+    file_name = f'EMA_Cross_for_{datetime.today().strftime("%Y-%m-%d")}.csv'
 
+    # Define your personal access token
+    # token = 'TOKEN'
 
-    
     # Define the file path in the repository
-    # file_path = f'/{file_name}'
+    file_path = f'/{file_name}'
 
     # Define the API URL for file content and upload
-    # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+    upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 
     # Prepare the headers with the authorization token
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+# CHANGED ABOVE
     # headers = {
-    #     'Authorization': f'token {GH_TOKEN}',
-    #     'Accept': 'application/vnd.github.v3+json'
+    # 'Authorization': f'Bearer {token}',
+    # 'Accept': 'application/vnd.github.v3+json'
     # }
-
 
 
     # Get the SHA of the existing file if it exists
@@ -615,7 +614,7 @@ try:
         payload['sha'] = sha
 
     # Send a PUT request to upload/replace the file
-    # response = requests.put(upload_url, headers=headers, json=payload)
+    response = requests.put(upload_url, headers=headers, json=payload)
 
     # Check the response status
     if response.status_code == 201:
@@ -631,8 +630,6 @@ try:
 
 except Exception as e:
     print('An error occurred:', e)
-
-"""**Delete from Github**"""
 
 
 from git import Repo
@@ -690,10 +687,11 @@ if latest_espen_file:
 try:
     repo.index.commit('Deleted old EMA_Cross_for_ and espen_ files')
     origin = repo.remote(name='origin')
-    origin.set_url('https://iamsrijit:{GH_TOKEN}@github.com/iamsrijit/Nepse.git')
+    origin.set_url('https://iamsrijit:{token}@github.com/iamsrijit/Nepse.git')
     origin.push()
     print("Pushed changes to GitHub.")
 except Exception as e:
     print(f"Error pushing changes to GitHub: {e}")
 
 print("Previous files have been deleted from the GitHub repository.")
+
