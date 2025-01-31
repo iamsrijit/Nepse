@@ -353,7 +353,7 @@ try:
    
 
     # Define the file path in the repository
-    file_path = f'/{file_name}'
+    # file_path = f'/{file_name}'
 
     # Define the API URL for uploading files to GitHub
      # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
@@ -511,7 +511,7 @@ try:
 
     
     # Define the file path in the repository
-    file_path = f'/{file_name}'
+    # file_path = f'/{file_name}'
 
     # Define the API URL for file content and upload
     upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
