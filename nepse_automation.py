@@ -44,8 +44,10 @@ try:
 
 except Exception as e:
     print(f"An error occurred: {e}")  # Handle the exception
-    
+
+file_path = file_name
 upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
+# upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 response = requests.put(upload_url, headers=headers, json=payload)
 
 
@@ -579,7 +581,7 @@ try:
     # file_path = f'/{file_name}'
 
     # Define the API URL for file content and upload
-    upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+    # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 
     # Prepare the headers with the authorization token
     # headers = {
