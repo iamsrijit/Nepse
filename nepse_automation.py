@@ -22,6 +22,9 @@ subprocess.check_call([sys.executable, "-m", "pip", "install"] + packages)
 from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 # Now import the installed packages
+
+file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
+
 try:
     # Convert finall_df to CSV format
     csv_data = finall_df.to_csv(index=False)
@@ -33,7 +36,7 @@ try:
     repo_url = 'https://github.com/iamsrijit/Nepse'
 
     # Define the file name with today's date
-    file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
+    # file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
     # GitHub API request payload
     payload = {
@@ -45,7 +48,7 @@ try:
 except Exception as e:
     print(f"An error occurred: {e}")  # Handle the exception
 
-    file_path = file_name
+file_path = file_name
 upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
 # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 response = requests.put(upload_url, headers=headers, json=payload)
