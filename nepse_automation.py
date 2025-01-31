@@ -100,17 +100,21 @@ GH_TOKEN = os.getenv("GH_TOKEN")
 if not GH_TOKEN:
     raise ValueError("GitHub Token not found. Please set it as an environment variable.")
 
-headers = {"Authorization": f"token {GH_TOKEN}"}
+headers = {
+    "Authorization": f"token {GH_TOKEN}",
+    "Accept": "application/vnd.github.v3+json",
+
+}
 
     
     # GitHub API URL
     
     
     # Define the headers with authentication token
-    headers = {
-        'Authorization': f'token {GH_TOKEN}',
-        'Accept': 'application/vnd.github.v3+json',
-    }
+    # headers = {
+    #     'Authorization': f'token {GH_TOKEN}',
+    #     'Accept': 'application/vnd.github.v3+json',
+    # }
 
     # GitHub API request payload (for file upload)
     data = {
