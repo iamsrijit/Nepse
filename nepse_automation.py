@@ -44,7 +44,8 @@ try:
 
 except Exception as e:
     print(f"An error occurred: {e}")  # Handle the exception
-
+    
+upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
 response = requests.put(upload_url, headers=headers, json=payload)
 
 
@@ -86,7 +87,7 @@ response = requests.put(upload_url, headers=headers, json=payload)
 # }
 
 # Upload the file to GitHub
-response = requests.put(upload_url, headers=headers, json=data)
+# response = requests.put(upload_url, headers=headers, json=data)
 
 # Create an object from the Nepse_scraper class
 request_obj = Nepse_scraper()
@@ -186,7 +187,7 @@ headers = {
 file_path = file_name  # Remove the leading slash
 
 
-upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
+# upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
 # upload_url = f"https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}"
 
 import pandas as pd
