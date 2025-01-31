@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas requests gitpython python-dotenv nepse-scraper xlsxwriter beautifulsoup4 joblib
+          pip install pandas requests gitpython python-dotenv nepse-scraper xlsxwriter beautifulsoup4 joblib matplotlib
 
       - name: Run automation script
         env:
