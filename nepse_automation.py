@@ -421,7 +421,7 @@ try:
     # token = 'TOKEN'
 
     # Define the file path in the repository
-    file_path = f'/{file_name}'
+    file_path = file_name
 
     # Define the API URL for uploading files to GitHub
      upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
