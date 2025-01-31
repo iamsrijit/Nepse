@@ -31,7 +31,7 @@ try:
     file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
     # GitHub API request payload
-    data = {
+    payload = {
         'message': 'Uploading file via automation',
         'content': csv_data_base64,  # Corrected variable name
         'branch': 'main'  # Specify the branch
@@ -422,13 +422,13 @@ import base64
 
     
     # Prepare the payload with file content
-    payload = {
-        'message': f'Upload {file_name}',
-        'content': csv_data_base64,
-        'branch': 'main'  # Specify the branch you want to upload to
-    }
+    # payload = {
+    #     'message': f'Upload {file_name}',
+    #     'content': csv_data_base64,
+    #     'branch': 'main'  # Specify the branch you want to upload to
+    # }
     
-    response = requests.put(upload_url, headers=headers, json=data)
+    # response = requests.put(upload_url, headers=headers, json=data)
 
 
 
@@ -454,12 +454,7 @@ import base64
 except Exception as e:
     print('An error occurred:', e)
 
-"""**Status code: 201 is successful**
-
-1 i chanegd
-
-data finall_df ma xa vannu paryoo
-"""
+ 
 
 import pandas as pd
 import numpy as np
@@ -611,7 +606,7 @@ try:
         payload['sha'] = sha
 
     # Send a PUT request to upload/replace the file
-    response = requests.put(upload_url, headers=headers, json=payload)
+    # response = requests.put(upload_url, headers=headers, json=payload)
 
     # Check the response status
     if response.status_code == 201:
