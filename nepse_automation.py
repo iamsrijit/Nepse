@@ -523,7 +523,9 @@ try:
     repo_url = 'https://github.com/iamsrijit/Nepse'
 
     # Define the file name with today's date
-    file_name = f"EMA_Cross_for_{datetime.today().strftime("%Y-%m-%d")}.csv"
+    # file_name = f"EMA_Cross_for_{datetime.today().strftime("%Y-%m-%d")}.csv"
+    file_name = f"EMA_Cross_for_{datetime.today().strftime('%Y-%m-%d')}.csv"
+
 
     
     # Define the file path in the repository
