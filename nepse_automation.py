@@ -123,7 +123,7 @@ headers = {
     # }
 
     # Make the POST request to GitHub API
-    response = requests.put(upload_url, headers=headers, json=data)
+    # response = requests.put(upload_url, headers=headers, json=data)
 
     # Check for successful response
     if response.status_code == 201:
