@@ -107,7 +107,7 @@ if not GH_TOKEN:
     
     
     # Define the headers with authentication token
-   headers = {
+headers = {
     'Authorization': f'token {GH_TOKEN}',
     'Accept': 'application/vnd.github.v3+json'
 }
