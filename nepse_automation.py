@@ -11,8 +11,7 @@ import pandas as pd
 from datetime import datetime
 import pandas as pd
 import numpy as np
-from joblib import Parallel, delayed
-import matplotlib.pyplot as plt
+
 
 
 # List of required packages
@@ -20,7 +19,8 @@ packages = ["nepse-scraper", "xlsxwriter", "gitpython", "pandas","matplotlib","j
 
 # Install missing packages
 subprocess.check_call([sys.executable, "-m", "pip", "install"] + packages)
-
+from joblib import Parallel, delayed
+import matplotlib.pyplot as plt
 # Now import the installed packages
 try:
     # Convert finall_df to CSV format
