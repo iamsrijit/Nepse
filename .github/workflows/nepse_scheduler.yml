@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -49,11 +49,19 @@ jobs:
           git commit -m "Auto-update data [$(date)]" || echo "No changes to commit"
           git push https://${{ secrets.GH_TOKEN }}@github.com/iamsrijit/Nepse.git main || echo "No changes to push"
           
-      - name: Clean up old files in repo
-        run: |
+            - name: Clean up old files in repo
+          run: |
           repo_dir="/tmp/nepse_repo"
+          
+          # Remove the existing directory if it exists
+          if [ -d "$repo_dir" ]; then
+            rm -rf "$repo_dir"
+          fi
+          
+          # Clone the repository again
           git clone https://github.com/iamsrijit/Nepse.git "$repo_dir"
           cd "$repo_dir"
+          
           # Add logic to delete old files as per your script's clean-up process
           git add .
           git commit -m "Auto-cleanup old files" || echo "No changes to commit"
