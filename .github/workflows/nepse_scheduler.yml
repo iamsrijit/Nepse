@@ -24,9 +24,15 @@ jobs:
         run: |
           pip install pandas requests gitpython python-dotenv nepse-scraper xlsxwriter beautifulsoup4 joblib matplotlib
 
+      - name: Set up GitHub Token for authentication
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
+
       - name: Run automation script
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Pass GitHub token
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Pass GitHub token securely
         run: |
           python nepse_automation.py
 
@@ -39,6 +45,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          git add .
+          git add . 
           git commit -m "Auto-update data [$(date)]" || echo "No changes to commit"
+          git push https://${{ secrets.GH_TOKEN }}@github.com/iamsrijit/Nepse.git main || echo "No changes to push"
+          
+      - name: Clean up old files in repo
+        run: |
+          repo_dir="/tmp/nepse_repo"
+          git clone https://github.com/iamsrijit/Nepse.git "$repo_dir"
+          cd "$repo_dir"
+          # Add logic to delete old files as per your script's clean-up process
+          git add .
+          git commit -m "Auto-cleanup old files" || echo "No changes to commit"
           git push https://${{ secrets.GH_TOKEN }}@github.com/iamsrijit/Nepse.git main || echo "No changes to push"
