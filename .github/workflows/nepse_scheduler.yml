@@ -1,30 +1,49 @@
-name: Nepse Data Updater
+name: NEPSE Daily Automation
 
 on:
   schedule:
-    - cron: '0 20 * * *'  # 8 PM UTC (2:15 AM NPT)
+    - cron: '15 10 * * 0-4'  # 4 PM Nepal Time (10:15 UTC), Sun-Thu
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
-  update-data:
+  run-script:
     runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Kathmandu
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    # - name: Install dependencies
-    #   run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter
 
-    - name: Run data updater
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: python nepse_automation.py
+      - name: Run automation script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: python nepse_automation.py
+
+      - name: Commit and push changes
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add *.csv
+          git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d')"
+          git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
+          git push origin main
+
+      - name: Cleanup old files
+        run: |
+          for prefix in espen EMA_Cross_for; do
+            files=$(git ls-files -- "$prefix*.csv" | sort -r | awk 'NR>3')
+            [ -n "$files" ] && git rm -q $files
+          done
+          git diff-index --quiet HEAD || git commit -m "Auto-cleanup" && git push origin main
