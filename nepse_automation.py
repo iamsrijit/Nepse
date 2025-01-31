@@ -17,11 +17,6 @@ packages = ["nepse-scraper", "xlsxwriter", "gitpython", "pandas"]
 subprocess.check_call([sys.executable, "-m", "pip", "install"] + packages)
 
 # Now import the installed packages
-
-
-# Your script logic goes here
-# print("All required packages are installed and imported successfully!")
-
 try:
     # Convert finall_df to CSV format
     csv_data = finall_df.to_csv(index=False)
@@ -29,32 +24,59 @@ try:
     # Encode the CSV data to Base64
     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
 
-    # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
-
     # Define the GitHub repository URL
     repo_url = 'https://github.com/iamsrijit/Nepse'
 
     # Define the file name with today's date
-    # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
     file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
-# !pip install nepse-scraper
-# !pip install xlsxwriter
-# !pip install gitpython
-# !pip install gitpython pandas
+    # GitHub API request payload
+    data = {
+        'message': 'Uploading file via automation',
+        'content': csv_data_base64,  # Corrected variable name
+        'branch': 'main'  # Specify the branch
+    }
 
-# """**Daily Nepse Scrapping**"""
+except Exception as e:
+    print(f"An error occurred: {e}")  # Handle the exception
 
 
-# Encode CSV data in Base64
-# csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+# Your script logic goes here
+# print("All required packages are installed and imported successfully!")
 
-# GitHub API request payload
-data = {
-    'message': 'Uploading file via automation',
-    'content': csv_data_base64,  # Corrected variable name
-    'branch': 'main'  # Specify the branch
-}
+# try:
+#     # Convert finall_df to CSV format
+#     csv_data = finall_df.to_csv(index=False)
+
+#     # Encode the CSV data to Base64
+#     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+
+#     # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+
+#     # Define the GitHub repository URL
+#     repo_url = 'https://github.com/iamsrijit/Nepse'
+
+#     # Define the file name with today's date
+#     # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+#     file_name = f"nepse_{datetime.today().strftime('%Y-%m-%d')}.csv"
+
+# # !pip install nepse-scraper
+# # !pip install xlsxwriter
+# # !pip install gitpython
+# # !pip install gitpython pandas
+
+# # """**Daily Nepse Scrapping**"""
+
+
+# # Encode CSV data in Base64
+# # csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+
+# # GitHub API request payload
+# data = {
+#     'message': 'Uploading file via automation',
+#     'content': csv_data_base64,  # Corrected variable name
+#     'branch': 'main'  # Specify the branch
+# }
 
 # Upload the file to GitHub
 response = requests.put(upload_url, headers=headers, json=data)
