@@ -44,8 +44,13 @@ content_data = today_price.get('content', [])
 filtered_data = []
 
 # Define the column names
-columns = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume']
 
+    # GitHub API request payload (for file upload)
+data = {
+    'message': 'Uploading file via automation',
+    'content': content,  # Base64 encoded content of the file
+}
+columns = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume']
 # Iterate over each item in the 'content' section
 for item in content_data:
     symbol = item.get('symbol', '')
@@ -113,11 +118,7 @@ headers = {
 }
 
 
-    # GitHub API request payload (for file upload)
-data = {
-    'message': 'Uploading file via automation',
-    'content': content,  # Base64 encoded content of the file
-}
+
 
     # Make the POST request to GitHub API
     # response = requests.put(upload_url, headers=headers, json=data)
