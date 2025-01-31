@@ -635,15 +635,22 @@ def get_latest_file(pattern, files):
     return max(matched_files) if matched_files else None
 
 # Replace with your GitHub repository URL
-repo_url = 'https://github.com/iamsrijit/Nepse.git'
-repo_dir = '/content/nepse_new'  # Directory to clone the repository
+# repo_url = 'https://github.com/iamsrijit/Nepse.git'
+# repo_dir = '/content/nepse_new'  # Directory to clone the repository
 
-# Check if the directory exists and is not empty
-if os.path.exists(repo_dir) and os.listdir(repo_dir):
-    repo = Repo(repo_dir)
-else:
-    # Clone the repository
+
+# Replace with your GitHub repository URL
+repo_url = 'https://github.com/iamsrijit/Nepse.git'
+repo_dir = './nepse_repo'  # Use a writable directory instead of '/content/nepse_new'
+
+# Clone the repository
+if not os.path.exists(repo_dir):  # Ensure the directory does not already exist
     repo = Repo.clone_from(repo_url, repo_dir)
+else:
+    repo = Repo(repo_dir)  # Open existing repository
+
+print("Repository cloned successfully!")
+
 
 # List all files in the repository directory
 all_files = os.listdir(repo_dir)
