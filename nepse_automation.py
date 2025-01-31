@@ -180,6 +180,7 @@ file_path = file_name  # Remove the leading slash
 
 
 upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
+# upload_url = f"https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}"
 
 import pandas as pd
 import requests
@@ -407,7 +408,7 @@ import base64
      # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
     # cHANGED ABOVE LINE
 
-    upload_url = f"https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}"
+    # upload_url = f"https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}"
 
 
     
