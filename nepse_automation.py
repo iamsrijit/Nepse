@@ -71,7 +71,7 @@ def get_daily_data():
 
 # ... [Rest of the code remains unchanged] ...
 # Install required dependencies
-subprocess.run(["pip", "install", "nepse-scraper", "xlsxwriter", "gitpython", "pandas", "requests", "beautifulsoup4", "joblib", "matplotlib"], check=True)
+# subprocess.run(["pip", "install", "nepse-scraper", "xlsxwriter", "gitpython", "pandas", "requests", "beautifulsoup4", "joblib", "matplotlib"], check=True)
 
 # ----------------------------
 # Daily Data Scraping Section
