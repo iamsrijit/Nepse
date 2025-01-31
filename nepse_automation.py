@@ -1,6 +1,22 @@
 import subprocess
 import sys
+import os, requests
 
+def github_file_operations():
+    try:
+        token = os.getenv("GH_TOKEN")
+        if not token:
+            raise ValueError("GitHub token not found.")
+        
+        headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
+        repo, path = "iamsrijit/Nepse", "README.md"
+        api_url = "https://api.github.com/repos/iamsrijit/Nepse/contents/"
+
+        response = requests.get(api_url, headers=headers)
+        return response.json() if response.status_code == 200 else f"Error: {response.status_code}, {response.text}"
+    
+    except Exception as e:
+        return str(e)
 # List of required packages
 packages = ["nepse-scraper", "xlsxwriter", "gitpython", "pandas"]
 
