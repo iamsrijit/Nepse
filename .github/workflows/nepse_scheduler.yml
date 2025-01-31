@@ -22,11 +22,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas requests gitpython python-dotenv nepse-scraper xlsxwriter beautifulsoup4
+          pip install pandas requests gitpython python-dotenv nepse-scraper xlsxwriter beautifulsoup4 joblib
 
       - name: Run automation script
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Pass GitHub token
         run: |
           python nepse_automation.py
 
@@ -37,7 +37,7 @@ jobs:
 
       - name: Commit and Push Changes
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git add .
           git commit -m "Auto-update data [$(date)]" || echo "No changes to commit"
