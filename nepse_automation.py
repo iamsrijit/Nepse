@@ -6,6 +6,9 @@ import nepse_scraper
 import xlsxwriter
 import git
 import pandas as pd
+from nepse_scraper import Nepse_scraper
+import pandas as pd
+from datetime import datetime
 
 # List of required packages
 packages = ["nepse-scraper", "xlsxwriter", "gitpython", "pandas"]
@@ -40,11 +43,8 @@ try:
 # !pip install gitpython
 # !pip install gitpython pandas
 
-"""**Daily Nepse Scrapping**"""
+# """**Daily Nepse Scrapping**"""
 
-from nepse_scraper import Nepse_scraper
-import pandas as pd
-from datetime import datetime
 
 # Encode CSV data in Base64
 csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
