@@ -400,61 +400,132 @@ import os
 from datetime import datetime
 import base64
 
+
 try:
-    # Convert finall_df to CSV format
-    csv_data = finall_df.to_csv(index=False)
-
-    # Encode the CSV data to Base64
-    csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
     file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
-    file_path = file_name
-    upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
-    # Define the GitHub repository URL
-    repo_url = 'https://github.com/iamsrijit/Nepse'
+    csv_data = finall_df.to_csv(index=False)
+    csv_b64 = base64.b64encode(csv_data.encode()).decode()
+    
+    headers = {'Authorization': f'token {os.getenv("GH_TOKEN")}'}
+    payload = {
+        'message': f'Add {file_name}',
+        'content': csv_b64,
+        'branch': 'main'
+    }
+    
+    # Debug print
+    print(f"Attempting upload to: https://api.github.com/repos/iamsrijit/Nepse/contents/{file_name}")
+    
+    response = requests.put(
+        f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_name}',
+        headers=headers,
+        json=payload
+    )
+    
+    # Debug response
+    print(f"Status code: {response.status_code}")
+    print(f"Response: {response.json()}")
+    
+except Exception as e:
+    print(f"Upload failed completely: {str(e)}")
+    raise
 
-    # # Define the file name with today's date
-    # # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# try:
+#     # Convert finall_df to CSV format
+#     csv_data = finall_df.to_csv(index=False)
+
+#     # Encode the CSV data to Base64
+#     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
+#     file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+#     file_path = file_name
+#     upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
+    
+#     # Define the GitHub repository URL
+#     repo_url = 'https://github.com/iamsrijit/Nepse'
+
+#     # # Define the file name with today's date
+#     # # file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
 
   
-    # # Define the file path in the repository
-    # file_path = file_name
+#     # # Define the file path in the repository
+#     # file_path = file_name
 
-    # # Define the API URL for uploading files to GitHub
-    #  upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
-    # # cHANGED ABOVE LINE
+#     # # Define the API URL for uploading files to GitHub
+#     #  upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+#     # # cHANGED ABOVE LINE
 
-    # # upload_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
+#     # # upload_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
 
 
     
 
 
-    headers = {
-        'Authorization': f'token {GH_TOKEN}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-    # Prepare the payload with file content
-    payload = {
-        'message': f'Upload {file_name}',
-        'content': csv_data_base64,
-        'branch': 'main'  # Specify the branch you want to upload to
-    }
+#     headers = {
+#         'Authorization': f'token {GH_TOKEN}',
+#         'Accept': 'application/vnd.github.v3+json'
+#     }
+#     # Prepare the payload with file content
+#     payload = {
+#         'message': f'Upload {file_name}',
+#         'content': csv_data_base64,
+#         'branch': 'main'  # Specify the branch you want to upload to
+#     }
 
-    # Send a PUT request to upload the file
-    response = requests.put(upload_url, headers=headers, json=payload)
+#     # Send a PUT request to upload the file
+#     response = requests.put(upload_url, headers=headers, json=payload)
 
-    # Check the response status
-    if response.status_code == 200:
-        print(f'File {file_name} uploaded successfully!')
-    elif response.status_code == 422:
-        print(f'Failed to upload {file_name}. Status code: 422 Unprocessable Entity')
-        print('Error Message:', response.json()['message'])
-    else:
-        print(f'Failed to upload {file_name}. Status code: {response.status_code}')
-        # print('Response Content:', response.text)
+#     # Check the response status
+#     if response.status_code == 200:
+#         print(f'File {file_name} uploaded successfully!')
+#     elif response.status_code == 422:
+#         print(f'Failed to upload {file_name}. Status code: 422 Unprocessable Entity')
+#         print('Error Message:', response.json()['message'])
+#     else:
+#         print(f'Failed to upload {file_name}. Status code: {response.status_code}')
+#         # print('Response Content:', response.text)
 
-except Exception as e:
-    print('An error occurred:', e)
+# except Exception as e:
+#     print('An error occurred:', e)
 
 
 
