@@ -104,7 +104,7 @@ headers = {"Authorization": f"token {GH_TOKEN}"}
 
     
     # GitHub API URL
-    upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+    
     
     # Define the headers with authentication token
     headers = {
@@ -127,6 +127,7 @@ headers = {"Authorization": f"token {GH_TOKEN}"}
     else:
         print(f"Failed to upload file: {response.status_code}, {response.text}")
 
+upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 
 import pandas as pd
 import requests
