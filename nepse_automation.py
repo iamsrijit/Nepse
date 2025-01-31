@@ -2,21 +2,7 @@ import subprocess
 import sys
 import os, requests
 
-def github_file_operations():
-    try:
-        token = os.getenv("GH_TOKEN")
-        if not token:
-            raise ValueError("GitHub token not found.")
-        
-        headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
-        repo, path = "iamsrijit/Nepse", "README.md"
-        api_url = "https://api.github.com/repos/iamsrijit/Nepse/contents/"
 
-        response = requests.get(api_url, headers=headers)
-        return response.json() if response.status_code == 200 else f"Error: {response.status_code}, {response.text}"
-    
-    except Exception as e:
-        return str(e)
 # List of required packages
 packages = ["nepse-scraper", "xlsxwriter", "gitpython", "pandas"]
 
@@ -106,6 +92,35 @@ else:
 
 first.head()
 
+token = os.getenv('GH_TOKEN')
+def upload_to_github(file_path, content):
+    # Make sure the token is available
+    if token is None:
+        raise ValueError("GitHub token (GH_TOKEN) is not defined. Please set the token as an environment variable.")
+    
+    # GitHub API URL
+    upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
+    
+    # Define the headers with authentication token
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json',
+    }
+
+    # GitHub API request payload (for file upload)
+    data = {
+        'message': 'Uploading file via automation',
+        'content': content,  # Base64 encoded content of the file
+    }
+
+    # Make the POST request to GitHub API
+    response = requests.put(upload_url, headers=headers, json=data)
+
+    # Check for successful response
+    if response.status_code == 201:
+        print(f"File uploaded successfully to {file_path}")
+    else:
+        print(f"Failed to upload file: {response.status_code}, {response.text}")
 
 
 import pandas as pd
