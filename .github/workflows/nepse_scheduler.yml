@@ -2,19 +2,22 @@ name: NEPSE Daily Automation
 
 on:
   schedule:
-    - cron: '15 10 * * 0-4'  # Runs Sunday-Thursday at 4 PM Nepal Time (10:15 UTC)
-  workflow_dispatch:  # Allows manual triggering
+    - cron: '15 10 * * 0-4'  # 4 PM Nepal Time (10:15 UTC), Sun-Thu
+  workflow_dispatch:
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     env:
-      TZ: Asia/Kathmandu  # Nepal timezone
+      TZ: Asia/Kathmandu
+      GITHUB_WORKSPACE: ${{ github.workspace }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          persist-credentials: false
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -22,47 +25,44 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas requests gitpython python-dotenv nepse-scraper xlsxwriter beautifulsoup4 joblib matplotlib
-
-      - name: Set up GitHub Token for authentication
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
+          pip install pandas requests gitpython python-dotenv \
+              nepse-scraper xlsxwriter beautifulsoup4 joblib \
+              scikit-learn matplotlib
 
       - name: Run automation script
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Pass GitHub token securely
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          mkdir -p data
           python nepse_automation.py
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit and Push Changes
+      - name: Commit and push changes
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          git add . 
-          git commit -m "Auto-update data [$(date)]" || echo "No changes to commit"
-          git push https://${{ secrets.GH_TOKEN }}@github.com/iamsrijit/Nepse.git main || echo "No changes to push"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-            - name: Clean up old files in repo
-          run: |
-          repo_dir="/tmp/nepse_repo"
+          # Add only relevant files
+          git add *.csv
           
-          # Remove the existing directory if it exists
-          if [ -d "$repo_dir" ]; then
-            rm -rf "$repo_dir"
-          fi
+          # Smart commit handling
+          git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d %H:%M:%S')"
           
-          # Clone the repository again
-          git clone https://github.com/iamsrijit/Nepse.git "$repo_dir"
-          cd "$repo_dir"
+          # Secure push
+          git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
+          git push origin HEAD:main
+
+      - name: Cleanup old files
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Keep last 3 files of each type
+          for prefix in espen EMA_Cross_for; do
+            files=$(git ls-files -- "$prefix*.csv" | sort -r | awk 'NR>3')
+            [ -n "$files" ] && git rm -q $files
+          done
           
-          # Add logic to delete old files as per your script's clean-up process
-          git add .
-          git commit -m "Auto-cleanup old files" || echo "No changes to commit"
-          git push https://${{ secrets.GH_TOKEN }}@github.com/iamsrijit/Nepse.git main || echo "No changes to push"
+          # Commit and push cleanup
+          git diff-index --quiet HEAD || git commit -m "Auto-cleanup old files"
+          git push origin HEAD:main
