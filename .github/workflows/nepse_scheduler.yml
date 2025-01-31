@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas requests gitpython python-dotenv nepse-scraper xlsxwriter
+          pip install pandas requests gitpython python-dotenv
 
       - name: Run automation script
         env:
@@ -30,15 +30,10 @@ jobs:
         run: |
           python nepse_automation.py
 
-      - name: Configure Git
+      - name: Commit and push changes
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit and Push Changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           git add .
-          git commit -m "Auto-update data [$(date)]" || echo "No changes to commit"
-          git push https://${{ secrets.GH_TOKEN }}@github.com/iamsrijit/Nepse.git main || echo "No changes to push"
+          git commit -m "Auto-update data [Manual Trigger]"
+          git push
