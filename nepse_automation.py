@@ -126,10 +126,10 @@ headers = {
     # response = requests.put(upload_url, headers=headers, json=data)
 
     # Check for successful response
-    if response.status_code == 201:
-        print(f"File uploaded successfully to {file_path}")
-    else:
-        print(f"Failed to upload file: {response.status_code}, {response.text}")
+    # if response.status_code == 201:
+    #     print(f"File uploaded successfully to {file_path}")
+    # else:
+    #     print(f"Failed to upload file: {response.status_code}, {response.text}")
 
 upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
 
