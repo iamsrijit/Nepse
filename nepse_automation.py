@@ -9,6 +9,11 @@ import pandas as pd
 from nepse_scraper import Nepse_scraper
 import pandas as pd
 from datetime import datetime
+import pandas as pd
+import numpy as np
+from joblib import Parallel, delayed
+import matplotlib.pyplot as plt
+
 
 # List of required packages
 packages = ["nepse-scraper", "xlsxwriter", "gitpython", "pandas"]
@@ -443,25 +448,21 @@ import base64
     # Send a PUT request to upload the file
     
 
-    # Check the response status
-    if response.status_code == 200:
-        print(f'File {file_name} uploaded successfully!')
-    elif response.status_code == 422:
-        print(f'Failed to upload {file_name}. Status code: 422 Unprocessable Entity')
-        print('Error Message:', response.json()['message'])
-    else:
-        print(f'Failed to upload {file_name}. Status code: {response.status_code}')
-        # print('Response Content:', response.text)
+#     # Check the response status
+#     if response.status_code == 200:
+#         print(f'File {file_name} uploaded successfully!')
+#     elif response.status_code == 422:
+#         print(f'Failed to upload {file_name}. Status code: 422 Unprocessable Entity')
+#         print('Error Message:', response.json()['message'])
+#     else:
+#         print(f'Failed to upload {file_name}. Status code: {response.status_code}')
+#         # print('Response Content:', response.text)
 
-except Exception as e:
-    print('An error occurred:', e)
+# except Exception as e:
+#     print('An error occurred:', e)
 
  
 
-import pandas as pd
-import numpy as np
-from joblib import Parallel, delayed
-import matplotlib.pyplot as plt
 
 # Load the data
 data = finall_df  # Assigning finall_df to data
