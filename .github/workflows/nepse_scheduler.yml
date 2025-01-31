@@ -2,7 +2,7 @@ name: NEPSE Daily Automation
 
 on:
   schedule:
-    - cron: '15 10 * * 0-4'  # 4:15 PM Nepal Time (10:15 UTC), Sun-Thu
+    - cron: '15 10 * * 0-4'  # 4 PM Nepal Time (10:15 UTC), Sun-Thu
   workflow_dispatch:
 
 jobs:
@@ -14,28 +14,20 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          cache: 'pip'  # Add caching for faster builds
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pandas requests gitpython python-dotenv \
-              nepse-scraper xlsxwriter beautifulsoup4 joblib \
-              scikit-learn matplotlib openpyxl
+          pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter
 
       - name: Run automation script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          mkdir -p data
-          python nepse_automation.py
+        run: python nepse_automation.py
 
       - name: Commit and push changes
         env:
@@ -43,20 +35,15 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # Add all CSV files in data directory
-          git add data/*.csv
-          
-          # Smart commit handling
-          git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d %H:%M:%S')"
-          
-          # Secure push
+          git add *.csv
+          git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d')"
           git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
-          git push origin HEAD:main
+          git push origin main
 
       - name: Cleanup old files
         run: |
-          # Keep last 3 files of each type in data directory
           for prefix in espen EMA_Cross_for; do
-            ls -t data/$prefix*.csv | tail -n +4 | xargs -r rm --
+            files=$(git ls-files -- "$prefix*.csv" | sort -r | awk 'NR>3')
+            [ -n "$files" ] && git rm -q $files
           done
+          git diff-index --quiet HEAD || git commit -m "Auto-cleanup" && git push origin main
