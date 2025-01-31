@@ -314,7 +314,7 @@ try:
      # upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents{file_path}'
     # cHANGED ABOVE LINE
 
-    upload_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
+    upload_url = f"https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}"
 
 
     # Prepare the headers with the authorization token
