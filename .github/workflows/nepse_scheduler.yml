@@ -2,14 +2,14 @@ name: NEPSE Daily Automation
 
 on:
   schedule:
-    # Runs at 4 PM Nepal Time (UTC+5:45) every Sunday-Thursday
-    - cron: '15 10 * * 0-4'  # 10:15 UTC = 16:00 Nepal Time
+    - cron: '15 10 * * 0-4'  # 4 PM Nepal Time (10:15 UTC) Sunday-Thursday
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     env:
-      TZ: Asia/Kathmandu  # Set timezone to Nepal
+      TZ: Asia/Kathmandu  # Nepal timezone
 
     steps:
       - name: Checkout code
@@ -26,7 +26,7 @@ jobs:
 
       - name: Run automation script
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # Use the secret token
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           python nepse_automation.py
 
@@ -35,5 +35,5 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add .
-          git commit -m "Auto-update data"
+          git commit -m "Auto-update data [Manual Trigger]"
           git push
