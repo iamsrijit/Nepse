@@ -2,15 +2,19 @@ import subprocess
 import sys
 
 # List of required packages
-packages = ["xlsxwriter", "gitpython", "pandas"]
+packages = ["nepse-scraper", "xlsxwriter", "gitpython", "pandas"]
 
 # Install missing packages
 subprocess.check_call([sys.executable, "-m", "pip", "install"] + packages)
 
 # Now import the installed packages
+import nepse_scraper
 import xlsxwriter
 import git
 import pandas as pd
+
+# Your script logic goes here
+print("All required packages are installed and imported successfully!")
 
 
 
