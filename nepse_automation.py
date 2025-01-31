@@ -114,10 +114,10 @@ headers = {
 
 
     # GitHub API request payload (for file upload)
-    data = {
-        'message': 'Uploading file via automation',
-        'content': content,  # Base64 encoded content of the file
-    }
+data = {
+    'message': 'Uploading file via automation',
+    'content': content,  # Base64 encoded content of the file
+}
 
     # Make the POST request to GitHub API
     # response = requests.put(upload_url, headers=headers, json=data)
