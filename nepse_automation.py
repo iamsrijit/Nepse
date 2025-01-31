@@ -1,3 +1,19 @@
+import subprocess
+import sys
+
+# List of required packages
+packages = ["xlsxwriter", "gitpython", "pandas"]
+
+# Install missing packages
+subprocess.check_call([sys.executable, "-m", "pip", "install"] + packages)
+
+# Now import the installed packages
+import xlsxwriter
+import git
+import pandas as pd
+
+
+
 !pip install nepse-scraper
 !pip install xlsxwriter
 !pip install gitpython
@@ -70,31 +86,7 @@ else:
 
 first.head()
 
-"""**access nepse data till July 31**"""
 
-# import pandas as pd
-
-
-# file_url='https://github.com/iamsrijit/Nepse/blob/4ec5e33791458a5cf2b93cedf1c98a1e0a6e8bd0/espen_2024-10-16.csv'
-# # # # Read data from the URL
-# secondss = pd.read_csv(file_url)
-
-"""github bta tanne. use innitially"""
-
-# import pandas as pd
-
-# # Use the RAW GitHub link
-# file_url = 'https://raw.githubusercontent.com/iamsrijit/Nepse/main/merged_stoc.csv'
-
-# # Read the CSV file
-# secondss = pd.read_csv(file_url)
-
-# # Display the first few rows
-# print(secondss.head())
-
-# secondss.head()
-
-"""**tala ko chai upload nagari automatically tannu parda**"""
 
 import pandas as pd
 import requests
