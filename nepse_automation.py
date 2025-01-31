@@ -399,16 +399,16 @@ import requests
 import os
 from datetime import datetime
 import base64
-file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
-file_path = file_name
-upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
+
 try:
     # Convert finall_df to CSV format
     csv_data = finall_df.to_csv(index=False)
 
     # Encode the CSV data to Base64
     csv_data_base64 = base64.b64encode(csv_data.encode()).decode()
-
+    file_name = f'espen_{datetime.today().strftime("%Y-%m-%d")}.csv'
+    file_path = file_name
+    upload_url = f'https://api.github.com/repos/iamsrijit/Nepse/contents/{file_path}'
     # Define the GitHub repository URL
     repo_url = 'https://github.com/iamsrijit/Nepse'
 
