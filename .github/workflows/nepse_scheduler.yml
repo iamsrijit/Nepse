@@ -27,7 +27,7 @@ jobs:
       - name: Run automation script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python nepse_automation.py
+        run: python latest_code.py  # Updated to use latest_code.py
 
       - name: Commit and push changes
         env:
@@ -47,3 +47,28 @@ jobs:
             [ -n "$files" ] && git rm -q $files
           done
           git diff-index --quiet HEAD || git commit -m "Auto-cleanup" && git push origin main
+
+name: Nepse Automation Scheduler
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Runs every day at 6 AM UTC
+
+jobs:
+  run_script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install GPG
+        run: sudo apt update && sudo apt install -y gnupg
+
+      - name: Decrypt automation script
+        run: echo "${{ secrets.GPG_PASSWORD }}" | gpg --batch --passphrase-fd 0 -d latest_code.py.gpg > latest_code.py  # Updated to use latest_code.py.gpg
+
+      - name: Run Automation Script
+        run: python latest_code.py  # Updated to use latest_code.py
+
+      - name: Clean up decrypted file
+        run: rm latest_code.py  # Updated to remove latest_code.py
