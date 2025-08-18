@@ -28,7 +28,7 @@ jobs:
       - name: Run automation script
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python "3 vs 9.py"
+        run: python "3_vs_9.py"
 
       - name: Commit and push new CSV files
         env:
