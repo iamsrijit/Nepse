@@ -1,4 +1,4 @@
-name: NEPSE Daily Automation
+name: NEPSE 3vs9 Automation
 
 on:
   schedule:
