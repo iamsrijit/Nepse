@@ -25,10 +25,10 @@ jobs:
         run: |
           pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter
 
-      - name: Run GPT5.py script
+      - name: Run gpt5.py script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python GPT5.py
+        run: python gpt5.py
 
       - name: Commit and push changes
         env:
