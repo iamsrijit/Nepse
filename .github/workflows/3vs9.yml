@@ -49,15 +49,19 @@ jobs:
           # List all matching files sorted by name (descending)
           files=$(ls -1 3vs9EMA_Cross_for_*.csv 2>/dev/null | sort -r)
           latest_file=$(echo "$files" | head -n 1)
-          old_files=$(echo "$files" | tail -n +2)
 
-          if [ -n "$old_files" ]; then
-            echo "Keeping latest: $latest_file"
-            echo "Removing old files: $old_files"
-            git rm -q $old_files
-            git diff-index --quiet HEAD || git commit -m "Auto-cleanup old 3vs9EMA_Cross_for_ files, kept $latest_file"
-            git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
-            git push origin main
+          if [ -n "$files" ] && [ -n "$latest_file" ]; then
+            old_files=$(echo "$files" | grep -v "$latest_file")
+            if [ -n "$old_files" ]; then
+              echo "Keeping latest: $latest_file"
+              echo "Removing old files: $old_files"
+              git rm -q $old_files
+              git diff-index --quiet HEAD || git commit -m "Auto-cleanup old 3vs9EMA_Cross_for_ files, kept $latest_file"
+              git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
+              git push origin main
+            else
+              echo "No old files to clean up."
+            fi
           else
-            echo "No old files to clean up."
+            echo "No files to process."
           fi
