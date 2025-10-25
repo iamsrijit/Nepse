@@ -28,7 +28,7 @@ jobs:
       - name: Run automation script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python nepse_auto.py  # Run nepse_auto.py directly
+        run: python nepse_autp.py  # Run nepse_auto.py directly
 
       - name: Commit and push changes
         env:
@@ -48,3 +48,4 @@ jobs:
             [ -n "$files" ] && git rm -q $files
           done
           git diff-index --quiet HEAD || git commit -m "Auto-cleanup" && git push origin main
+
