@@ -2,7 +2,7 @@ name: NEPSE 3vs9 Automation
 
 on:
   schedule:
-    # Runs every day at 4 PM Nepal Time (10:15 UTC), Sun–Thu
+    # Runs every Sunday–Thursday at 6 PM Nepal Time (12:15 UTC)
     - cron: '15 12 * * 0-4'
   workflow_dispatch:
 
