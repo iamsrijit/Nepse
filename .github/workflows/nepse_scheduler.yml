@@ -3,7 +3,6 @@ name: NEPSE Daily Automation
 on:
   schedule:
     # - cron: '30 14 * * *'  # Runs every day at 8:15 PM Nepal Time (14:30 UTC)
-
     - cron: '15 10 * * 0-4'  # 4 PM Nepal Time (10:15 UTC), Sun-Thu
   workflow_dispatch:
 
@@ -26,16 +25,10 @@ jobs:
         run: |
           pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter
 
-      - name: Install GPG
-        run: sudo apt update && sudo apt install -y gnupg
-
-      - name: Decrypt automation script
-        run: echo "${{ secrets.GPG_PASSWORD }}" | gpg --batch --passphrase-fd 0 -d latest_code.py.gpg > latest_code.py  # Added decryption
-
       - name: Run automation script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python latest_code.py  # Use latest_code.py after decryption
+        run: python nepse_auto.py  # Run nepse_auto.py directly
 
       - name: Commit and push changes
         env:
