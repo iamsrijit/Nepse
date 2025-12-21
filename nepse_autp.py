@@ -115,14 +115,14 @@ else:
 
 
 
-# Create an object from the Nepse_scraper class
-# request_obj = Nepse_scraper()
+# # Create an object from the Nepse_scraper class
+# # request_obj = Nepse_scraper()
 
-# # Get today's price from NEPSE
-# today_price = request_obj.get_today_price()
+# # # Get today's price from NEPSE
+# # today_price = request_obj.get_today_price()
 
-# Extract the 'content' section from the response
-content_data = today_price.get('content', [])
+# # Extract the 'content' section from the response
+# content_data = today_price.get('content', [])
 
 # Initialize an empty list to store filtered data
 filtered_data = []
