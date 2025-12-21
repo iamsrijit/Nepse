@@ -102,11 +102,13 @@ token = os.getenv("GH_TOKEN")
 
 # Upload the file to GitHub
 # response = requests.put(upload_url, headers=headers, json=data)
-# Create an object from the Nepse_scraper class
 request_obj = Nepse_scraper(verify_ssl=False)
-
-# Get today's price from NEPSE
 today_price = request_obj.get_today_price()
+
+if isinstance(today_price, dict):
+    content_data = today_price.get('content', [])
+else:
+    content_data = today_price
 
 
 
