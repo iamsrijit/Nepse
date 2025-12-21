@@ -132,19 +132,24 @@ filtered_data = []
 
 columns = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume']
 # Iterate over each item in the 'content' section
+def to_float(x):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return 0.0
+
 for item in content_data:
     symbol = item.get('symbol', '')
     date = item.get('businessDate', '')
-    open_price = item.get('openPrice', 0)
-    high_price = item.get('highPrice', 0)
-    low_price = item.get('lowPrice', 0)
-    close_price = item.get('closePrice', 0)
-    volume_daily = item.get('totalTradedValue', 0)
 
-    # Calculate percent change if open_price is available
-    percent_change = ((close_price - open_price) / open_price * 100) if open_price else 0
+    open_price  = to_float(item.get('openPrice'))
+    high_price  = to_float(item.get('highPrice'))
+    low_price   = to_float(item.get('lowPrice'))
+    close_price = to_float(item.get('closePrice'))
+    volume_daily = to_float(item.get('totalTradedValue'))
 
-    # Append the extracted values to the filtered data list
+    percent_change = ((close_price - open_price) / open_price * 100) if open_price > 0 else 0
+
     filtered_data.append({
         'Symbol': symbol,
         'Date': date,
@@ -155,6 +160,7 @@ for item in content_data:
         'Percent Change': round(percent_change, 2),
         'Volume': volume_daily
     })
+
 
 # Create DataFrame from filtered data
 first = pd.DataFrame(filtered_data)
