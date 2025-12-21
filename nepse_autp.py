@@ -146,7 +146,7 @@ for item in content_data:
     high_price  = to_float(item.get('highPrice'))
     low_price   = to_float(item.get('lowPrice'))
     close_price = to_float(item.get('closePrice'))
-    volume_daily = to_float(item.get('totalTradedValue'))
+    volume_daily = to_float(item.get('totalTradedQuantity'))
 
     percent_change = ((close_price - open_price) / open_price * 100) if open_price > 0 else 0
 
