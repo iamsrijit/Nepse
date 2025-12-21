@@ -28,7 +28,7 @@ jobs:
       - name: Run automation script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python latest_code.py
+        run: python nepse_autp.py
 
       - name: Commit and push changes
         env:
@@ -49,3 +49,4 @@ jobs:
           done
           git diff-index --quiet HEAD || git commit -m "Auto-cleanup"
           git push origin main
+
