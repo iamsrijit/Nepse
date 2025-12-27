@@ -1,4 +1,4 @@
-# RSI_LT_30_LATEST_WITH_PORTFOLIO_CLEANUP_SORTED.py
+# RSI_LT_30_LATEST_WITH_PORTFOLIO_OVERWRITE.py
 # -*- coding: utf-8 -*-
 
 import os, re, base64
@@ -40,30 +40,7 @@ def upload_to_github(filename, content):
     res = requests.put(url, headers=HEADERS, json=payload)
     if res.status_code not in (200, 201):
         raise RuntimeError(f"Upload failed: {res.text}")
-    print("✅ Uploaded:", filename)
-
-def delete_file(filename):
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{filename}"
-    r = requests.get(url, headers=HEADERS)
-    if r.status_code == 200:
-        sha = r.json()["sha"]
-        res = requests.delete(url, headers=HEADERS, json={"message": f"Delete {filename}", "sha": sha, "branch": BRANCH})
-        if res.status_code in (200, 204):
-            print("🗑 Deleted:", filename)
-        else:
-            print("❌ Failed to delete:", filename, res.text)
-
-def cleanup_old_files(prefix):
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents"
-    r = requests.get(url, headers=HEADERS)
-    r.raise_for_status()
-    files = [f['name'] for f in r.json() if f['name'].startswith(prefix)]
-    if len(files) <= 1:
-        return
-    # Sort by date in filename
-    files_sorted = sorted(files, key=lambda x: re.search(r'\d{4}-\d{2}-\d{2}', x).group(), reverse=True)
-    for old_file in files_sorted[1:]:
-        delete_file(old_file)
+    print("✅ Uploaded/Overwritten:", filename)
 
 # ===========================
 # GET LATEST MARKET CSV
@@ -134,9 +111,8 @@ signals_df = pd.DataFrame(signals)
 # Sort by latest signal date descending
 signals_df = signals_df.sort_values('Date', ascending=False).reset_index(drop=True)
 
-signal_file = f"RSI_LT_30_LATEST_{datetime.today().date()}.csv"
+signal_file = "RSI_LT_30_LATEST.csv"
 upload_to_github(signal_file, signals_df.to_csv(index=False))
-cleanup_old_files("RSI_LT_30_LATEST_")
 
 # ===========================
 # PORTFOLIO CSV
@@ -171,22 +147,16 @@ for symbol in pt['Symbol'].unique():
 
     open_qty = sum(q for q, _ in open_lots)
     invested = sum(q*p for q,p in open_lots)
-    avg_cost = (invested/open_qty) if open_qty else 0
     last_close = latest_close_map.get(symbol,0)
     unrealized = open_qty*last_close - invested
     total_pl = realized + unrealized
     pl_pct = (total_pl / invested *100) if invested else 0
 
-    # Mark if sell target (5% profit) reached
-    sell_target = "Yes" if last_close >= avg_cost*1.05 else "No"
-
     portfolio_rows.append({
         "Symbol": symbol,
         "Open_Qty": open_qty,
-        "Avg_Cost": round(avg_cost,2),
-        "Total_Invested": round(invested,2),
-        "Latest_Close": round(last_close,2),
-        "Sell_Target_5%": sell_target,
+        "Avg_Cost": round(invested/open_qty,2) if open_qty else 0,
+        "Latest_Close": last_close,
         "Realized_PnL": round(realized,2),
         "Unrealized_PnL": round(unrealized,2),
         "Total_PnL": round(total_pl,2),
@@ -195,11 +165,10 @@ for symbol in pt['Symbol'].unique():
 
 portfolio_df = pd.DataFrame(portfolio_rows)
 
-# Sort by Total_PnL descending
+# Sort portfolio by Total_PnL descending
 portfolio_df = portfolio_df.sort_values('Total_PnL', ascending=False).reset_index(drop=True)
 
-portfolio_file = f"PORTFOLIO_REPORT_{datetime.today().date()}.csv"
+portfolio_file = "PORTFOLIO_REPORT.csv"
 upload_to_github(portfolio_file, portfolio_df.to_csv(index=False))
-cleanup_old_files("PORTFOLIO_REPORT_")
 
-print("✅ DONE — Signals & Portfolio updated, sorted by date, old files cleaned up")
+print("✅ DONE — Signals & Portfolio updated, old files overwritten")
