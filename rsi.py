@@ -1,4 +1,4 @@
-# RSI_LT_30_LATEST_WITH_PORTFOLIO_CLEANUP.py
+# RSI_LT_30_LATEST_WITH_PORTFOLIO_CLEANUP_SORTED.py
 # -*- coding: utf-8 -*-
 
 import os, re, base64
@@ -130,6 +130,10 @@ for sym in df['Symbol'].unique():
         })
 
 signals_df = pd.DataFrame(signals)
+
+# Sort by latest signal date descending
+signals_df = signals_df.sort_values('Date', ascending=False).reset_index(drop=True)
+
 signal_file = f"RSI_LT_30_LATEST_{datetime.today().date()}.csv"
 upload_to_github(signal_file, signals_df.to_csv(index=False))
 cleanup_old_files("RSI_LT_30_LATEST_")
@@ -184,8 +188,12 @@ for symbol in pt['Symbol'].unique():
     })
 
 portfolio_df = pd.DataFrame(portfolio_rows)
+
+# Sort portfolio by Total_PnL descending (optional)
+portfolio_df = portfolio_df.sort_values('Total_PnL', ascending=False).reset_index(drop=True)
+
 portfolio_file = f"PORTFOLIO_REPORT_{datetime.today().date()}.csv"
 upload_to_github(portfolio_file, portfolio_df.to_csv(index=False))
 cleanup_old_files("PORTFOLIO_REPORT_")
 
-print("✅ DONE — Signals & Portfolio updated, old files cleaned up")
+print("✅ DONE — Signals & Portfolio updated, sorted by date, old files cleaned up")
