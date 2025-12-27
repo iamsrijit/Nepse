@@ -16,7 +16,7 @@ REPO_OWNER = "iamsrijit"
 REPO_NAME = "Nepse"
 BRANCH = "main"
 # how far back to keep signals (days)
-KEEP_DAYS = 300
+KEEP_DAYS = 3000
 
 # ---------------------------
 # UTIL: find latest CSV in repo root (public repo)
