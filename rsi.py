@@ -15,7 +15,7 @@ import numpy as np
 REPO_OWNER = "iamsrijit"
 REPO_NAME = "Nepse"
 BRANCH = "main"
-KEEP_DAYS = 3000  # last 300 days
+KEEP_DAYS = 3000  # last 300 days of signals
 
 # ---------------------------
 # HELPER: get latest CSV from repo root
@@ -59,13 +59,18 @@ if missing:
     raise ValueError(f"CSV missing expected columns: {missing}")
 
 df = df_raw[expected_cols].copy()
-# parse date properly
-df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%Y')
+
+# convert Date safely for any format
+df['Date'] = pd.to_datetime(df['Date'], errors='coerce', dayfirst=False, infer_datetime_format=True)
+df = df.dropna(subset=['Date'])
+
 # remove duplicates keeping latest row for same symbol+date
 df = df.sort_values(['Symbol','Date','Close'], ascending=[True, True, True])
 df = df.drop_duplicates(subset=['Symbol','Date'], keep='last')
+
 # sort oldest -> newest
 df = df.sort_values(['Symbol','Date'], ascending=[True, True]).reset_index(drop=True)
+
 # ensure Close is numeric
 df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
 df = df.dropna(subset=['Close'])
