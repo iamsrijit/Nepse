@@ -114,15 +114,20 @@ for symbol in finall_df['Symbol'].unique():
     rsi_10 = calculate_rsi(prices, length=10)
     rsi_ema_14 = ema(rsi_10, span=14)
 
-    for i in range(len(symbol_df)):
-        if not np.isnan(rsi_ema_14[i]) and rsi_ema_14[i] < 30:
-            results.append([
-                symbol,
-                symbol_df['Date'][i],
-                "Buy",
-                symbol_df['Close'][i],
-                round(rsi_ema_14[i], 2)
-            ])
+  for i in range(1, len(symbol_df)):
+    if (
+        not np.isnan(rsi_ema_14[i])
+        and not np.isnan(rsi_ema_14[i - 1])
+        and rsi_ema_14[i] < 30
+        and rsi_ema_14[i - 1] >= 30
+    ):
+        results.append([
+            symbol,
+            symbol_df['Date'][i],
+            "Buy",
+            symbol_df['Close'][i],
+            round(rsi_ema_14[i], 2)
+        ])
 
 cross_signals_df = pd.DataFrame(
     results,
