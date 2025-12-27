@@ -1,9 +1,9 @@
-name: NEPSE 3vs9 Automation
+name: NEPSE RSI 
 
 on:
   schedule:
-    # Runs every Sunday–Thursday at 6 PM Nepal Time (12:15 UTC)
-    - cron: '15 12 * * 0-4'
+    # Runs every Sunday–Thursday at 8 PM Nepal Time (14:15 UTC)
+    - cron: '15 14 * * 0-4'
   workflow_dispatch:
 
 jobs:
@@ -37,7 +37,6 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add *.csv
-          # Only commit if there are changes
           git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d')"
           git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
           git push origin main
@@ -46,7 +45,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # List all matching files sorted by name (descending)
           files=$(ls -1 3vs9EMA_Cross_for_*.csv 2>/dev/null | sort -r)
           latest_file=$(echo "$files" | head -n 1)
 
