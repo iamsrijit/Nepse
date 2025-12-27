@@ -1,4 +1,4 @@
-# RSI_LT_30_LATEST_fixed_close.py
+# RSI_Portfolio_System.py
 # -*- coding: utf-8 -*-
 
 import os
@@ -19,65 +19,51 @@ KEEP_DAYS = 3000
 MANUAL_TRADES_FILE = "manual_trades.csv"
 
 # ---------------------------
-# HELPER: get latest CSV from repo root
+# GET LATEST MARKET CSV
 # ---------------------------
 def get_latest_csv_raw_url(owner, repo, branch="main"):
     api_url = f"https://api.github.com/repos/{owner}/{repo}/contents"
-    resp = requests.get(api_url, params={"ref": branch})
-    resp.raise_for_status()
-    items = resp.json()
+    r = requests.get(api_url, params={"ref": branch})
+    r.raise_for_status()
+    items = r.json()
 
-    csv_candidates = {}
-    for item in items:
-        name = item.get("name", "")
-        if name.lower().endswith(".csv"):
-            m = re.search(r"(\d{4}-\d{2}-\d{2})", name)
+    dated = {}
+    for it in items:
+        if it["name"].endswith(".csv"):
+            m = re.search(r"(\d{4}-\d{2}-\d{2})", it["name"])
             if m:
-                csv_candidates[m.group(1)] = name
+                dated[m.group(1)] = it["name"]
 
-    if not csv_candidates:
-        raise FileNotFoundError("No dated CSV found.")
-
-    latest_date = max(csv_candidates.keys())
-    filename = csv_candidates[latest_date]
-    raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{filename}"
-    return raw_url, filename
+    latest = max(dated.keys())
+    file = dated[latest]
+    raw = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{file}"
+    return raw, file
 
 # ---------------------------
-# LOAD MAIN MARKET DATA
+# LOAD MARKET DATA
 # ---------------------------
-raw_url, found_filename = get_latest_csv_raw_url(REPO_OWNER, REPO_NAME, BRANCH)
-print("Using CSV:", found_filename)
+raw_url, market_file = get_latest_csv_raw_url(REPO_OWNER, REPO_NAME, BRANCH)
+print("Market file:", market_file)
 
-df_raw = pd.read_csv(raw_url)
-
-expected_cols = [
-    'Symbol','Date','Open','High','Low',
-    'Close','Percent Change','Volume'
-]
-
-df = df_raw[expected_cols].copy()
+df = pd.read_csv(raw_url)
+df = df[['Symbol','Date','Open','High','Low','Close','Percent Change','Volume']]
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
-
 df = df.dropna(subset=['Date','Close'])
 df = df.sort_values(['Symbol','Date','Close'])
 df = df.drop_duplicates(['Symbol','Date'], keep='last')
 df = df.sort_values(['Symbol','Date']).reset_index(drop=True)
 
 # ---------------------------
-# LOAD MANUAL TRADES FROM GITHUB
+# LOAD MANUAL TRADES
 # ---------------------------
-manual_trades_url = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/{MANUAL_TRADES_FILE}"
+manual_url = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/{MANUAL_TRADES_FILE}"
+manual = pd.read_csv(manual_url)
 
-try:
-    manual_df = pd.read_csv(manual_trades_url)
-    manual_df['Symbol'] = manual_df['Symbol'].astype(str)
-    manual_df.set_index('Symbol', inplace=True)
-    print("Loaded manual trades from GitHub")
-except Exception:
-    manual_df = pd.DataFrame()
-    print("No manual_trades.csv found")
+manual['Buy_Date'] = pd.to_datetime(manual['Buy_Date'], errors='coerce')
+manual['Exit_Price'] = pd.to_numeric(manual['Exit_Price'], errors='coerce')
+manual['Buy_Price'] = pd.to_numeric(manual['Buy_Price'], errors='coerce')
+manual['Quantity'] = pd.to_numeric(manual['Quantity'], errors='coerce')
 
 # ---------------------------
 # INDICATORS
@@ -89,92 +75,116 @@ def compute_rsi(series, length=10):
     avg_gain = gain.ewm(alpha=1/length, adjust=False, min_periods=length).mean()
     avg_loss = loss.ewm(alpha=1/length, adjust=False, min_periods=length).mean()
     rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+    return 100 - (100 / (1 + rs))
 
 def compute_ema(series, span):
     return series.ewm(span=span, adjust=False, min_periods=span).mean()
 
 # ---------------------------
-# COMPUTE SIGNALS + P/L
+# SIGNALS
 # ---------------------------
-results = []
+signals = []
 
 for symbol in df['Symbol'].unique():
-    sub = df[df['Symbol'] == symbol].copy()
+    sub = df[df['Symbol'] == symbol]
     if len(sub) < 24:
         continue
 
+    sub = sub.copy()
     sub['RSI_10'] = compute_rsi(sub['Close'], 10)
     sub['RSI_EMA_14'] = compute_ema(sub['RSI_10'], 14)
 
-    latest_close = float(sub.iloc[-1]['Close'])
+    if (sub['RSI_EMA_14'] < 30).any():
+        row = sub[sub['RSI_EMA_14'] < 30].iloc[-1]
+        latest_close = sub.iloc[-1]['Close']
+        signals.append({
+            'Symbol': symbol,
+            'Signal_Date': row['Date'],
+            'Signal_Close': row['Close'],
+            'Latest_Close': latest_close,
+            'RSI_EMA_14': round(row['RSI_EMA_14'],2),
+            'Signal_PnL_%': round(((latest_close - row['Close']) / row['Close']) * 100, 2)
+        })
 
-    mask = sub['RSI_EMA_14'] < 30
-    if not mask.any():
-        continue
+signals_df = pd.DataFrame(signals)
 
-    row = sub[mask].iloc[-1]
-    signal_close = float(row['Close'])
-    signal_pnl = ((latest_close - signal_close) / signal_close) * 100
+# ---------------------------
+# PORTFOLIO CALCULATION
+# ---------------------------
+portfolio_rows = []
+latest_close_map = df.groupby('Symbol')['Close'].last().to_dict()
 
-    buy_price = qty = invested = current_value = pl = pl_pct = np.nan
+for _, t in manual.iterrows():
+    symbol = t['Symbol']
+    buy_price = t['Buy_Price']
+    qty = t['Quantity']
+    exit_price = t['Exit_Price']
 
-    if symbol in manual_df.index:
-        buy_price = manual_df.loc[symbol, 'Buy_Price']
-        qty = manual_df.loc[symbol, 'Quantity']
-        invested = buy_price * qty
-        current_value = latest_close * qty
-        pl = current_value - invested
-        pl_pct = (pl / invested) * 100
+    invested = buy_price * qty
 
-    results.append({
+    if not pd.isna(exit_price):
+        current_value = exit_price * qty
+        realized_pl = current_value - invested
+        unrealized_pl = 0
+        status = "Closed"
+    else:
+        latest = latest_close_map.get(symbol, np.nan)
+        current_value = latest * qty if not pd.isna(latest) else np.nan
+        realized_pl = 0
+        unrealized_pl = current_value - invested
+        status = "Open"
+
+    portfolio_rows.append({
         'Symbol': symbol,
-        'Signal_Date': row['Date'],
-        'Signal': 'Buy',
-        'Signal_Close': round(signal_close,2),
-        'RSI_EMA_14': round(row['RSI_EMA_14'],2),
-        'Latest_Close': round(latest_close,2),
-        'Signal_PnL_%': round(signal_pnl,2),
+        'Buy_Date': t['Buy_Date'],
         'Buy_Price': buy_price,
         'Quantity': qty,
+        'Exit_Price': exit_price,
+        'Status': status,
         'Invested': invested,
         'Current_Value': current_value,
-        'P/L': pl,
-        'Manual_PnL_%': pl_pct
+        'Realized_P/L': realized_pl,
+        'Unrealized_P/L': unrealized_pl
     })
 
-signals_df = pd.DataFrame(results)
+portfolio_df = pd.DataFrame(portfolio_rows)
 
 # ---------------------------
-# FILTER DATE RANGE
+# PORTFOLIO SUMMARY
 # ---------------------------
-if not signals_df.empty:
-    cutoff = datetime.today() - timedelta(days=KEEP_DAYS)
-    signals_df = signals_df[signals_df['Signal_Date'] >= cutoff]
-    signals_df = signals_df.sort_values('Signal_Date', ascending=False)
+summary = {
+    'Total_Invested': portfolio_df['Invested'].sum(),
+    'Total_Current_Value': portfolio_df['Current_Value'].sum(),
+    'Total_Realized_P/L': portfolio_df['Realized_P/L'].sum(),
+    'Total_Unrealized_P/L': portfolio_df['Unrealized_P/L'].sum()
+}
+
+summary['Portfolio_PnL_%'] = (
+    (summary['Total_Current_Value'] - summary['Total_Invested'])
+    / summary['Total_Invested'] * 100
+)
+
+summary_df = pd.DataFrame([summary])
 
 # ---------------------------
-# SAVE / UPLOAD
+# SAVE OUTPUT
 # ---------------------------
-out_csv = signals_df.to_csv(index=False)
-out_file = f"RSI_LT_30_LATEST_{datetime.today().strftime('%Y-%m-%d')}.csv"
+out = {
+    "signals": signals_df,
+    "portfolio": portfolio_df,
+    "summary": summary_df
+}
 
-token = os.environ.get("GH_TOKEN")
+out_file = f"PORTFOLIO_REPORT_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
-if not token:
-    with open(out_file,"w") as f:
-        f.write(out_csv)
-    print("Saved locally:", out_file)
-else:
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{out_file}"
-    headers = {"Authorization": f"token {token}"}
-    payload = {
-        "message": f"Update {out_file}",
-        "content": base64.b64encode(out_csv.encode()).decode(),
-        "branch": BRANCH
-    }
-    r = requests.put(url, headers=headers, json=payload)
-    print("Uploaded:", out_file)
+final_df = pd.concat([
+    portfolio_df,
+    pd.DataFrame([{}]),
+    summary_df
+])
 
-print("Done | Signals:", len(signals_df))
+final_df.to_csv(out_file, index=False)
+print("Saved:", out_file)
+
+print("\nPORTFOLIO SUMMARY")
+print(summary_df.to_string(index=False))
