@@ -1,13 +1,14 @@
-# RSI_Portfolio_System.py
+# RSI_Portfolio_Partial_Exit.py
 # -*- coding: utf-8 -*-
 
 import os
 import re
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime
 import requests
 import pandas as pd
 import numpy as np
+from collections import deque
 
 # ---------------------------
 # CONFIG
@@ -15,7 +16,6 @@ import numpy as np
 REPO_OWNER = "iamsrijit"
 REPO_NAME = "Nepse"
 BRANCH = "main"
-KEEP_DAYS = 3000
 MANUAL_TRADES_FILE = "manual_trades.csv"
 
 # ---------------------------
@@ -46,103 +46,84 @@ raw_url, market_file = get_latest_csv_raw_url(REPO_OWNER, REPO_NAME, BRANCH)
 print("Market file:", market_file)
 
 df = pd.read_csv(raw_url)
-df = df[['Symbol','Date','Open','High','Low','Close','Percent Change','Volume']]
+df = df[['Symbol','Date','Close']]
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
-df = df.dropna(subset=['Date','Close'])
-df = df.sort_values(['Symbol','Date','Close'])
-df = df.drop_duplicates(['Symbol','Date'], keep='last')
+df = df.dropna()
 df = df.sort_values(['Symbol','Date']).reset_index(drop=True)
+
+latest_close_map = df.groupby('Symbol')['Close'].last().to_dict()
 
 # ---------------------------
 # LOAD MANUAL TRADES
 # ---------------------------
 manual_url = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/{MANUAL_TRADES_FILE}"
-manual = pd.read_csv(manual_url)
+trades = pd.read_csv(manual_url)
 
-manual['Buy_Date'] = pd.to_datetime(manual['Buy_Date'], errors='coerce')
-manual['Exit_Price'] = pd.to_numeric(manual['Exit_Price'], errors='coerce')
-manual['Buy_Price'] = pd.to_numeric(manual['Buy_Price'], errors='coerce')
-manual['Quantity'] = pd.to_numeric(manual['Quantity'], errors='coerce')
+trades['Trade_Date'] = pd.to_datetime(trades['Trade_Date'], errors='coerce')
+trades['Price'] = pd.to_numeric(trades['Price'], errors='coerce')
+trades['Quantity'] = pd.to_numeric(trades['Quantity'], errors='coerce')
 
-# ---------------------------
-# INDICATORS
-# ---------------------------
-def compute_rsi(series, length=10):
-    delta = series.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.ewm(alpha=1/length, adjust=False, min_periods=length).mean()
-    avg_loss = loss.ewm(alpha=1/length, adjust=False, min_periods=length).mean()
-    rs = avg_gain / avg_loss
-    return 100 - (100 / (1 + rs))
-
-def compute_ema(series, span):
-    return series.ewm(span=span, adjust=False, min_periods=span).mean()
+trades = trades.sort_values(['Symbol','Trade_Date'])
 
 # ---------------------------
-# SIGNALS
-# ---------------------------
-signals = []
-
-for symbol in df['Symbol'].unique():
-    sub = df[df['Symbol'] == symbol]
-    if len(sub) < 24:
-        continue
-
-    sub = sub.copy()
-    sub['RSI_10'] = compute_rsi(sub['Close'], 10)
-    sub['RSI_EMA_14'] = compute_ema(sub['RSI_10'], 14)
-
-    if (sub['RSI_EMA_14'] < 30).any():
-        row = sub[sub['RSI_EMA_14'] < 30].iloc[-1]
-        latest_close = sub.iloc[-1]['Close']
-        signals.append({
-            'Symbol': symbol,
-            'Signal_Date': row['Date'],
-            'Signal_Close': row['Close'],
-            'Latest_Close': latest_close,
-            'RSI_EMA_14': round(row['RSI_EMA_14'],2),
-            'Signal_PnL_%': round(((latest_close - row['Close']) / row['Close']) * 100, 2)
-        })
-
-signals_df = pd.DataFrame(signals)
-
-# ---------------------------
-# PORTFOLIO CALCULATION
+# FIFO PORTFOLIO ENGINE
 # ---------------------------
 portfolio_rows = []
-latest_close_map = df.groupby('Symbol')['Close'].last().to_dict()
+summary_rows = []
 
-for _, t in manual.iterrows():
-    symbol = t['Symbol']
-    buy_price = t['Buy_Price']
-    qty = t['Quantity']
-    exit_price = t['Exit_Price']
+for symbol, grp in trades.groupby('Symbol'):
+    inventory = deque()
+    realized_pl = 0
 
-    invested = buy_price * qty
+    for _, t in grp.iterrows():
+        price = t['Price']
+        qty = int(t['Quantity'])
 
-    if not pd.isna(exit_price):
-        current_value = exit_price * qty
-        realized_pl = current_value - invested
-        unrealized_pl = 0
-        status = "Closed"
-    else:
-        latest = latest_close_map.get(symbol, np.nan)
-        current_value = latest * qty if not pd.isna(latest) else np.nan
-        realized_pl = 0
-        unrealized_pl = current_value - invested
-        status = "Open"
+        # BUY
+        if qty > 0:
+            inventory.append([qty, price])
+
+        # SELL (partial or full)
+        else:
+            sell_qty = abs(qty)
+            while sell_qty > 0 and inventory:
+                buy_qty, buy_price = inventory[0]
+
+                matched = min(buy_qty, sell_qty)
+                realized_pl += matched * (price - buy_price)
+
+                inventory[0][0] -= matched
+                sell_qty -= matched
+
+                if inventory[0][0] == 0:
+                    inventory.popleft()
+
+    # Remaining inventory → unrealized
+    latest_price = latest_close_map.get(symbol, np.nan)
+    unrealized_pl = 0
+    open_qty = 0
+    invested = 0
+    current_value = 0
+
+    for qty, buy_price in inventory:
+        open_qty += qty
+        invested += qty * buy_price
+        current_value += qty * latest_price
+        unrealized_pl += qty * (latest_price - buy_price)
 
     portfolio_rows.append({
         'Symbol': symbol,
-        'Buy_Date': t['Buy_Date'],
-        'Buy_Price': buy_price,
-        'Quantity': qty,
-        'Exit_Price': exit_price,
-        'Status': status,
-        'Invested': invested,
-        'Current_Value': current_value,
+        'Open_Quantity': open_qty,
+        'Invested': round(invested,2),
+        'Current_Value': round(current_value,2),
+        'Realized_P/L': round(realized_pl,2),
+        'Unrealized_P/L': round(unrealized_pl,2),
+        'Total_P/L': round(realized_pl + unrealized_pl,2)
+    })
+
+    summary_rows.append({
+        'Symbol': symbol,
         'Realized_P/L': realized_pl,
         'Unrealized_P/L': unrealized_pl
     })
@@ -169,22 +150,11 @@ summary_df = pd.DataFrame([summary])
 # ---------------------------
 # SAVE OUTPUT
 # ---------------------------
-out = {
-    "signals": signals_df,
-    "portfolio": portfolio_df,
-    "summary": summary_df
-}
-
 out_file = f"PORTFOLIO_REPORT_{datetime.today().strftime('%Y-%m-%d')}.csv"
 
-final_df = pd.concat([
-    portfolio_df,
-    pd.DataFrame([{}]),
-    summary_df
-])
-
+final_df = pd.concat([portfolio_df, pd.DataFrame([{}]), summary_df])
 final_df.to_csv(out_file, index=False)
-print("Saved:", out_file)
 
+print("Saved:", out_file)
 print("\nPORTFOLIO SUMMARY")
 print(summary_df.to_string(index=False))
