@@ -171,16 +171,22 @@ for symbol in pt['Symbol'].unique():
 
     open_qty = sum(q for q, _ in open_lots)
     invested = sum(q*p for q,p in open_lots)
+    avg_cost = (invested/open_qty) if open_qty else 0
     last_close = latest_close_map.get(symbol,0)
     unrealized = open_qty*last_close - invested
     total_pl = realized + unrealized
     pl_pct = (total_pl / invested *100) if invested else 0
 
+    # Mark if sell target (5% profit) reached
+    sell_target = "Yes" if last_close >= avg_cost*1.05 else "No"
+
     portfolio_rows.append({
         "Symbol": symbol,
         "Open_Qty": open_qty,
-        "Avg_Cost": round(invested/open_qty,2) if open_qty else 0,
-        "Latest_Close": last_close,
+        "Avg_Cost": round(avg_cost,2),
+        "Total_Invested": round(invested,2),
+        "Latest_Close": round(last_close,2),
+        "Sell_Target_5%": sell_target,
         "Realized_PnL": round(realized,2),
         "Unrealized_PnL": round(unrealized,2),
         "Total_PnL": round(total_pl,2),
@@ -189,7 +195,7 @@ for symbol in pt['Symbol'].unique():
 
 portfolio_df = pd.DataFrame(portfolio_rows)
 
-# Sort portfolio by Total_PnL descending (optional)
+# Sort by Total_PnL descending
 portfolio_df = portfolio_df.sort_values('Total_PnL', ascending=False).reset_index(drop=True)
 
 portfolio_file = f"PORTFOLIO_REPORT_{datetime.today().date()}.csv"
