@@ -13,7 +13,6 @@ from collections import deque
 REPO_OWNER = "iamsrijit"
 REPO_NAME = "Nepse"
 BRANCH = "main"
-KEEP_DAYS = 3000
 PORTFOLIO_FILE = "portfolio_trades.csv"
 
 GH_TOKEN = os.environ.get("GH_TOKEN")
@@ -73,9 +72,21 @@ def get_latest_csv():
     url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents"
     r = requests.get(url, headers=HEADERS, params={"ref": BRANCH})
     r.raise_for_status()
-    files = {f['name']: f for f in r.json() if f['name'].endswith(".csv") and "RSI" not in f['name'] and "PORTFOLIO" not in f['name']}
-    dated_files = {re.search(r'\d{4}-\d{2}-\d{2}', k).group(): k for k in files.keys()}
-    latest_date = max(dated_files)
+    
+    # keep only market CSVs (ignore RSI/PORTFOLIO)
+    files = {f['name']: f for f in r.json() 
+             if f['name'].endswith(".csv") and "RSI" not in f['name'] and "PORTFOLIO" not in f['name']}
+    
+    dated_files = {}
+    for k in files.keys():
+        m = re.search(r'\d{4}-\d{2}-\d{2}', k)
+        if m:
+            dated_files[m.group()] = k
+
+    if not dated_files:
+        raise FileNotFoundError("No CSV files with date pattern found in repo root.")
+
+    latest_date = max(dated_files.keys())
     return github_raw(dated_files[latest_date])
 
 # ===========================
