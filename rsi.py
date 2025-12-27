@@ -144,7 +144,7 @@ signals_df = pd.DataFrame(results, columns=['Symbol', 'Date', 'Signal', 'Close',
 # STEP 4: Filter last 300 days
 # ===============================
 signals_df['Date'] = pd.to_datetime(signals_df['Date'])
-cutoff = datetime.today() - timedelta(days=300)
+cutoff = datetime.today() - timedelta(days=900)
 signals_df = signals_df[signals_df['Date'] >= cutoff]
 signals_df = signals_df.sort_values('Date', ascending=False).reset_index(drop=True)
 
