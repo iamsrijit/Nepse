@@ -4,8 +4,9 @@ name: Scrape NEPSE Fundamentals & Upload CSV
 
 on:
   schedule:
-    - cron: '0 12 * * *'   # Daily at 12:00 UTC (~5:45 PM Nepal time)
-  workflow_dispatch:
+    # Bi-weekly: Runs on the 1st and 15th of every month at 12:00 UTC (~5:45 PM Nepal time)
+    - cron: '0 12 1,15 * *'
+  workflow_dispatch:  # Allows manual trigger from GitHub UI anytime
 
 jobs:
   scrape-and-upload:
