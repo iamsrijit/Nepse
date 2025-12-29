@@ -120,32 +120,58 @@ print(f"Found {len(ticker_list)} active tickers.\n")
 url_prefix = "https://www.onlinekhabar.com/markets/ticker/"
 
 xpath_dict = {
-    "Stock name": "/html/body/div[1]/div/section/main/div/div/section[3]/article/div/p",
+       "Stock Name": "/html/body/div[1]/div/section/main/div/div/section[3]/article/div/p",
     "Ticker": "/html/body/div[1]/div/section/main/div/div/section[4]/article/div/div[1]/p[1]",
     "Sector": '//*[@id="sector"]',
-    "EPS": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[2]/td[2]",
-    "PE ratio": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[4]/td[2]",
-    "PB ratio": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[5]/td[2]",
+    "Today's Price": "/html/body/div/div/section/main/div/div/section[4]/article/div/div[1]/p[2]",
+    "Market Cap": "/html/body/div[1]/div/section/main/div/div/section[4]/article/div/div[3]/p[2]",
+    "Daily Change (%)": "/html/body/div[1]/div/section/main/div/div/section[4]/article/div/div[1]/span/span[1]",
+    "Weekly Change (%)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[1]/div/div/div/article[1]/div/div/p",
+    "Monthly Change (%)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[1]/div/div/div/article[2]/div/div/p",
+    "3-Month Change (%)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[1]/div/div/div/article[3]/div/div/p",
+    "Yearly Change (%)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[1]/div/div/div/article[4]/div/div/p",
+    "5-Year Change (%)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[1]/div/div/div/article[5]/div/div/p",
+    "EPS (Trailing)": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[2]/td[2]",
+    "P/E Ratio": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[4]/td[2]",
+    "P/B Ratio": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[5]/td[2]",
     "RSI": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[2]/article/table/tbody/tr[1]/td[2]",
-    "T Rev L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[2]/span",
-    "T Rev P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[3]/span",
-    "Gross Profit L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[3]/td[2]/span",
-    "Gross Profit P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[3]/td[3]/span",
-    "Net Profit L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[2]/span",
-    "Net Profit P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[3]/span",
-    "% change in Net Profit": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[4]/span",
-    "Eps Annualized L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[5]/td[2]/span",
-    "Eps Annualized P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[5]/td[3]/span",
-    "Book Value Per Share L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[6]/td[2]/span",
-    "Book Value Per Share P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[6]/td[3]/span",
-    "Total Asset L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[7]/td[2]/span",
-    "Total Asset P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[7]/td[3]/span",
-    "Total Liabilities L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[8]/td[2]/span",
-    "Total Liabilities P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[8]/td[3]/span",
-    "Paid Up Capital L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[9]/td[2]/span",
-    "Paid Up Capital P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[9]/td[3]/span",
-    "Reserves L": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[10]/td[2]/span",
-    "Reserves P": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[10]/td[3]/span",
+    "ROE": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[2]/span",
+
+    "Total Revenue (Latest Quarter)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[2]/span",
+    "Total Revenue (Previous Quarter)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[3]/span",
+    "Total Revenue % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[4]/span",
+
+    "Gross Profit (Latest)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[3]/td[2]/span",
+    "Gross Profit (Previous)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[3]/td[3]/span",
+    "Gross Profit % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[3]/td[4]/span",
+
+    "Net Profit (Latest)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[2]/span",
+    "Net Profit (Previous)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[3]/span",
+    "Net Profit % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[4]/span",
+
+    "Annualized EPS (Latest)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[5]/td[2]/span",
+    "Annualized EPS (Previous)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[5]/td[3]/span",
+    "Annualized EPS % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[5]/td[4]/span",
+
+    "Book Value per Share (Latest)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[6]/td[2]/span",
+    "Book Value per Share (Previous)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[6]/td[3]/span",
+    "Book Value per Share % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[6]/td[4]/span",
+
+    "Total Assets (Latest)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[7]/td[2]/span",
+    "Total Assets (Previous)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[7]/td[3]/span",
+    "Total Assets % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[7]/td[4]/span",
+
+    "Total Liabilities (Latest)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[8]/td[2]/span",
+    "Total Liabilities (Previous)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[8]/td[3]/span",
+    "Total Liabilities % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[8]/td[4]/span",
+
+    "Paid-up Capital (Latest)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[9]/td[2]/span",
+    "Paid-up Capital (Previous)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[9]/td[3]/span",
+    "Paid-up Capital % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[9]/td[4]/span",
+
+    "Reserves (Latest)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[10]/td[2]/span",
+    "Reserves (Previous)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[10]/td[3]/span",
+    "Reserves % Change": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[10]/td[4]/span",
 }
 
 results = []
