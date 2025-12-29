@@ -134,8 +134,8 @@ xpath_dict = {
     "EPS (Trailing)": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[2]/td[2]",
     "P/E Ratio": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[4]/td[2]",
     "P/B Ratio": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[5]/td[2]",
-    "RSI": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[2]/article/table/tbody/tr[1]/td[2]",
-    "ROE": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[2]/span",
+    # "RSI": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[2]/article/table/tbody/tr[1]/td[2]",
+    # "ROE": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[2]/span",
 
     "Total Revenue (Latest Quarter)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[2]/span",
     "Total Revenue (Previous Quarter)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[3]/span",
