@@ -2,15 +2,43 @@ name: gpt5
 
 on:
   schedule:
-    # - cron: '30 14 * * *'  # Runs every day at 8:15 PM Nepal Time (14:30 UTC)
     - cron: '15 10 * * 0-4'  # 4 PM Nepal Time (10:15 UTC), Sun-Thu
   workflow_dispatch:
+    inputs:
+      run_type:
+        description: 'Type of run'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+        - full
+        - test
+        - quick
+      initial_capital:
+        description: 'Initial capital in NPR'
+        required: false
+        default: '500000'
+        type: string
+      start_date:
+        description: 'Start date (YYYY-MM-DD)'
+        required: false
+        default: ''
+        type: string
+      end_date:
+        description: 'End date (YYYY-MM-DD)'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     env:
       TZ: Asia/Kathmandu
+      INITIAL_CAPITAL: ${{ github.event.inputs.initial_capital || '500000' }}
+      RUN_TYPE: ${{ github.event.inputs.run_type || 'full' }}
+      START_DATE: ${{ github.event.inputs.start_date || '' }}
+      END_DATE: ${{ github.event.inputs.end_date || '' }}
 
     steps:
       - name: Checkout code
@@ -24,125 +52,212 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas numpy requests scikit-learn matplotlib seaborn
-          pip install statsmodels torch pulp
+          pip install pandas numpy requests
+          echo "Installing optional dependencies for $RUN_TYPE run..."
+          if [ "$RUN_TYPE" = "full" ]; then
+            pip install scikit-learn matplotlib seaborn statsmodels pulp
+          elif [ "$RUN_TYPE" = "test" ]; then
+            pip install scikit-learn
+          fi
+
+      - name: Display run parameters
+        run: |
+          echo "=== RUN PARAMETERS ==="
+          echo "Run Type: $RUN_TYPE"
+          echo "Initial Capital: NPR $INITIAL_CAPITAL"
+          echo "Start Date: $START_DATE"
+          echo "End Date: $END_DATE"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "======================"
 
       - name: Run enhanced NEPSE strategy script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "Running enhanced NEPSE Blitz Strategy..."
-          python gpt5.py
-          echo "Script execution completed!"
+          echo "Run parameters passed to script..."
+          
+          # Create a simple wrapper to pass parameters
+          cat > run_strategy.py << 'EOF'
+import sys
+import os
 
-      - name: Generate strategy report
+# Get environment variables
+run_type = os.getenv('RUN_TYPE', 'full')
+initial_capital = int(os.getenv('INITIAL_CAPITAL', '500000'))
+start_date = os.getenv('START_DATE', '')
+end_date = os.getenv('END_DATE', '')
+
+# Modify gpt5.py to use these parameters
+with open('gpt5.py', 'r') as f:
+    content = f.read()
+
+# Find the EnhancedNEPSEStrategy class initialization and modify it
+if 'def __init__(self):' in content:
+    # Simple approach: create a modified version
+    modified_content = content.replace(
+        'def __init__(self):',
+        f'def __init__(self, initial_capital={initial_capital}, start_date="{start_date}", end_date="{end_date}"):'
+    ).replace(
+        'self.initial_capital = 500000',
+        f'self.initial_capital = {initial_capital}'
+    )
+    
+    with open('gpt5_modified.py', 'w') as f:
+        f.write(modified_content)
+    
+    print(f"Modified script with capital: NPR {initial_capital}")
+    if start_date:
+        print(f"Start date filter: {start_date}")
+    if end_date:
+        print(f"End date filter: {end_date}")
+    
+    # Run the modified script
+    exec(open('gpt5_modified.py').read())
+EOF
+          
+          python run_strategy.py
+
+      - name: Generate detailed strategy report
         run: |
-          if [ -f "nepse_strategy_results.csv" ]; then
-            echo "Strategy results found. Generating report..."
-            python -c "
-import pandas as pd
-import numpy as np
-from datetime import datetime
-
-# Try to load results
-try:
-    df = pd.read_csv('nepse_strategy_results.csv')
-    print('='*60)
-    print('ENHANCED NEPSE BLITZ STRATEGY EXECUTION REPORT')
-    print('='*60)
-    print(f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-    print(f'Report period: {df[\"Date\"].min()} to {df[\"Date\"].max()}')
-    print(f'Total data points: {len(df)}')
-    print(f'Buy signals generated: {df[\"Buy_Signal\"].sum()}')
-    print('='*60)
-    
-    # Calculate metrics
-    if 'Capital' in df.columns:
-        initial_capital = df['Capital'].iloc[0]
-        final_capital = df['Capital'].iloc[-1]
-        total_return = ((final_capital / initial_capital) - 1) * 100
-        print(f'Initial Capital: NPR {initial_capital:,.2f}')
-        print(f'Final Capital: NPR {final_capital:,.2f}')
-        print(f'Total Return: {total_return:.2f}%')
-        print(f'Total Profit: NPR {final_capital - initial_capital:,.2f}')
-    
-    print('\\nStrategy Conditions Met (percentage of days):')
-    if 'MA_Condition' in df.columns:
-        print(f'• Price > 10-day MA: {df[\"MA_Condition\"].mean()*100:.1f}%')
-    if 'RSI_Condition' in df.columns:
-        print(f'• RSI > 70: {df[\"RSI_Condition\"].mean()*100:.1f}%')
-    if 'Volume_Condition' in df.columns:
-        print(f'• Volume > 1.5x Avg: {df[\"Volume_Condition\"].mean()*100:.1f}%')
-    if 'Sentiment_Condition' in df.columns:
-        print(f'• Sentiment > 0.6: {df[\"Sentiment_Condition\"].mean()*100:.1f}%')
-    if 'LSTM_Condition' in df.columns:
-        print(f'• LSTM Pred > 5%: {df[\"LSTM_Condition\"].mean()*100:.1f}%')
-    if 'Regime_Condition' in df.columns:
-        print(f'• Bull Regime Prob > 0.6: {df[\"Regime_Condition\"].mean()*100:.1f}%')
-    
-    print('='*60)
-    
-except Exception as e:
-    print(f'Error generating report: {e}')
-"
-          else
-            echo "No strategy results file found."
+          echo "=== STRATEGY EXECUTION REPORT ==="
+          echo "Generated on: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Run Type: ${{ github.event.inputs.run_type || 'scheduled' }}"
+          echo "================================"
+          echo ""
+          
+          # Check for results files and display them
+          for file in *.csv *.json *.txt; do
+            if [ -f "$file" ]; then
+              echo "📁 File generated: $file"
+              echo "Size: $(wc -l < "$file" | xargs) lines"
+              
+              # Show preview of CSV files
+              if [[ "$file" == *.csv ]]; then
+                echo "Preview (first 3 lines):"
+                head -n 4 "$file" | sed 's/^/  /'
+                echo ""
+              fi
+              
+              # Show JSON file content
+              if [[ "$file" == *.json ]]; then
+                echo "Content:"
+                cat "$file" | python -m json.tool 2>/dev/null || cat "$file"
+                echo ""
+              fi
+              
+              # Show text file content
+              if [[ "$file" == *.txt ]]; then
+                echo "Content:"
+                cat "$file"
+                echo ""
+              fi
+            fi
+          done
+          
+          # If no files were generated
+          if [ ! -f "*.csv" ] && [ ! -f "*.json" ]; then
+            echo "⚠️ No output files were generated!"
+            echo "Check the script execution step for errors."
           fi
 
-      - name: Save execution log
+      - name: Upload results as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nepse-strategy-results
+          path: |
+            *.csv
+            *.json
+            *.txt
+            gpt5*.py
+          retention-days: 7
+
+      - name: Create summary markdown file
         run: |
-          echo "Execution Timestamp: $(date '+%Y-%m-%d %H:%M:%S %Z')" > execution_log.txt
-          echo "GitHub Action Run ID: ${{ github.run_id }}" >> execution_log.txt
-          echo "Triggered by: ${{ github.event_name }}" >> execution_log.txt
-          echo "Repository: ${{ github.repository }}" >> execution_log.txt
+          cat > STRATEGY_SUMMARY.md << 'EOF'
+# Enhanced NEPSE Strategy Execution Summary
+
+**Execution Date:** $(date '+%Y-%m-%d %H:%M:%S')
+**Run ID:** ${{ github.run_id }}
+**Trigger:** ${{ github.event_name }}
+**Run Type:** ${{ github.event.inputs.run_type || 'scheduled' }}
+
+## Generated Files:
+
+EOF
+          
+          # Add file list
+          for file in *.csv *.json *.txt; do
+            if [ -f "$file" ]; then
+              lines=$(wc -l < "$file" | xargs)
+              size=$(ls -lh "$file" | awk '{print $5}')
+              echo "- **$file** ($lines lines, $size)" >> STRATEGY_SUMMARY.md
+            fi
+          done
+          
+          # Add performance summary if available
+          if [ -f "strategy_performance.json" ]; then
+            echo "" >> STRATEGY_SUMMARY.md
+            echo "## Performance Summary:" >> STRATEGY_SUMMARY.md
+            echo '```json' >> STRATEGY_SUMMARY.md
+            cat strategy_performance.json >> STRATEGY_SUMMARY.md
+            echo '```' >> STRATEGY_SUMMARY.md
+          fi
+          
+          echo "" >> STRATEGY_SUMMARY.md
+          echo "---" >> STRATEGY_SUMMARY.md
+          echo "*Generated automatically by GitHub Actions*" >> STRATEGY_SUMMARY.md
+          
+          echo "📋 Summary file created: STRATEGY_SUMMARY.md"
 
       - name: Commit and push results
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # Add all generated files
-          git add *.csv *.txt gpt5.py
-          
-          # Check if there are changes
-          if git diff-index --quiet HEAD; then
-            echo "No changes to commit."
+          # Only commit for scheduled runs or manual full runs
+          if [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.event.inputs.run_type || 'full' }}" == "full" ]]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            
+            # Add all generated files
+            git add *.csv *.json *.txt STRATEGY_SUMMARY.md
+            
+            # Check if there are changes
+            if git diff-index --quiet HEAD; then
+              echo "No changes to commit."
+            else
+              git commit -m "Auto-update: NEPSE Strategy Results - $(date +'%Y-%m-%d %H:%M') [Run ID: ${{ github.run_id }}]"
+              git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
+              git push origin main
+              echo "✅ Results pushed to repository."
+            fi
           else
-            git commit -m "Auto-update: Enhanced NEPSE Strategy Results - $(date +'%Y-%m-%d %H:%M')"
-            git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
-            git push origin main
-            echo "Results pushed to repository."
+            echo "Skipping commit for $RUN_TYPE run."
           fi
+
+      - name: Send notification (optional)
+        if: always()
+        run: |
+          echo "Workflow completed!"
+          echo "View results: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "Download artifacts from the 'nepse-strategy-results' artifact above."
 
       - name: Cleanup old files
         if: always()
         run: |
-          # Keep only last 7 days of results
-          for file in *.csv *.txt; do
-            if [ -f "$file" ]; then
-              file_age=$(find . -name "$file" -mtime +7 2>/dev/null)
-              if [ -n "$file_age" ]; then
-                echo "Removing old file: $file"
-                rm -f "$file"
-              fi
+          echo "Cleaning up temporary files..."
+          rm -f gpt5_modified.py run_strategy.py
+          
+          # Cleanup old result files (keep last 5)
+          for pattern in "nepse_strategy_results_*.csv" "nepse_trades_summary_*.csv" "strategy_performance_*.json"; do
+            files=( $pattern )
+            if [ ${#files[@]} -gt 5 ]; then
+              to_delete=$(( ${#files[@]} - 5 ))
+              echo "Removing $to_delete old files matching $pattern"
+              for ((i=0; i<to_delete; i++)); do
+                rm -f "${files[i]}"
+              done
             fi
           done
-          
-          # Optional: Keep only specific number of files
-          for prefix in espen EMA_Cross_for; do
-            files=$(ls -t ${prefix}*.csv 2>/dev/null | tail -n +4)
-            if [ -n "$files" ]; then
-              echo "Cleaning up old ${prefix} files..."
-              rm -f $files
-            fi
-          done
-          
-          # Commit cleanup if needed
-          if [ -n "$(git status --porcelain)" ]; then
-            git add .
-            git commit -m "Auto-cleanup: $(date +'%Y-%m-%d')"
-            git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
-            git push origin main
-          fi
