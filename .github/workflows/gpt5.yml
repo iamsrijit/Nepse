@@ -23,28 +23,126 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests scikit-learn matplotlib seaborn
+          pip install statsmodels torch pulp
 
-      - name: Run gpt5.py script
+      - name: Run enhanced NEPSE strategy script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python gpt5.py
+        run: |
+          echo "Running enhanced NEPSE Blitz Strategy..."
+          python gpt5.py
+          echo "Script execution completed!"
 
-      - name: Commit and push changes
+      - name: Generate strategy report
+        run: |
+          if [ -f "nepse_strategy_results.csv" ]; then
+            echo "Strategy results found. Generating report..."
+            python -c "
+import pandas as pd
+import numpy as np
+from datetime import datetime
+
+# Try to load results
+try:
+    df = pd.read_csv('nepse_strategy_results.csv')
+    print('='*60)
+    print('ENHANCED NEPSE BLITZ STRATEGY EXECUTION REPORT')
+    print('='*60)
+    print(f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f'Report period: {df[\"Date\"].min()} to {df[\"Date\"].max()}')
+    print(f'Total data points: {len(df)}')
+    print(f'Buy signals generated: {df[\"Buy_Signal\"].sum()}')
+    print('='*60)
+    
+    # Calculate metrics
+    if 'Capital' in df.columns:
+        initial_capital = df['Capital'].iloc[0]
+        final_capital = df['Capital'].iloc[-1]
+        total_return = ((final_capital / initial_capital) - 1) * 100
+        print(f'Initial Capital: NPR {initial_capital:,.2f}')
+        print(f'Final Capital: NPR {final_capital:,.2f}')
+        print(f'Total Return: {total_return:.2f}%')
+        print(f'Total Profit: NPR {final_capital - initial_capital:,.2f}')
+    
+    print('\\nStrategy Conditions Met (percentage of days):')
+    if 'MA_Condition' in df.columns:
+        print(f'• Price > 10-day MA: {df[\"MA_Condition\"].mean()*100:.1f}%')
+    if 'RSI_Condition' in df.columns:
+        print(f'• RSI > 70: {df[\"RSI_Condition\"].mean()*100:.1f}%')
+    if 'Volume_Condition' in df.columns:
+        print(f'• Volume > 1.5x Avg: {df[\"Volume_Condition\"].mean()*100:.1f}%')
+    if 'Sentiment_Condition' in df.columns:
+        print(f'• Sentiment > 0.6: {df[\"Sentiment_Condition\"].mean()*100:.1f}%')
+    if 'LSTM_Condition' in df.columns:
+        print(f'• LSTM Pred > 5%: {df[\"LSTM_Condition\"].mean()*100:.1f}%')
+    if 'Regime_Condition' in df.columns:
+        print(f'• Bull Regime Prob > 0.6: {df[\"Regime_Condition\"].mean()*100:.1f}%')
+    
+    print('='*60)
+    
+except Exception as e:
+    print(f'Error generating report: {e}')
+"
+          else
+            echo "No strategy results file found."
+          fi
+
+      - name: Save execution log
+        run: |
+          echo "Execution Timestamp: $(date '+%Y-%m-%d %H:%M:%S %Z')" > execution_log.txt
+          echo "GitHub Action Run ID: ${{ github.run_id }}" >> execution_log.txt
+          echo "Triggered by: ${{ github.event_name }}" >> execution_log.txt
+          echo "Repository: ${{ github.repository }}" >> execution_log.txt
+
+      - name: Commit and push results
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add *.csv
-          git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d')"
-          git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
-          git push origin main
+          
+          # Add all generated files
+          git add *.csv *.txt gpt5.py
+          
+          # Check if there are changes
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit."
+          else
+            git commit -m "Auto-update: Enhanced NEPSE Strategy Results - $(date +'%Y-%m-%d %H:%M')"
+            git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
+            git push origin main
+            echo "Results pushed to repository."
+          fi
 
       - name: Cleanup old files
+        if: always()
         run: |
-          for prefix in espen EMA_Cross_for; do
-            files=$(git ls-files -- "$prefix*.csv" | sort -r | awk 'NR>3')
-            [ -n "$files" ] && git rm -q $files
+          # Keep only last 7 days of results
+          for file in *.csv *.txt; do
+            if [ -f "$file" ]; then
+              file_age=$(find . -name "$file" -mtime +7 2>/dev/null)
+              if [ -n "$file_age" ]; then
+                echo "Removing old file: $file"
+                rm -f "$file"
+              fi
+            fi
           done
-          git diff-index --quiet HEAD || git commit -m "Auto-cleanup" && git push origin main
+          
+          # Optional: Keep only specific number of files
+          for prefix in espen EMA_Cross_for; do
+            files=$(ls -t ${prefix}*.csv 2>/dev/null | tail -n +4)
+            if [ -n "$files" ]; then
+              echo "Cleaning up old ${prefix} files..."
+              rm -f $files
+            fi
+          done
+          
+          # Commit cleanup if needed
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Auto-cleanup: $(date +'%Y-%m-%d')"
+            git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
+            git push origin main
+          fi
