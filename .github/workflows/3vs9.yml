@@ -1,4 +1,4 @@
-name: Run NEPSE Strategy
+name: gpt5
 
 on:
   schedule:
