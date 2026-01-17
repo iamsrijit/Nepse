@@ -1,4 +1,4 @@
-name: gpt5
+name: Run NEPSE Strategy
 
 on:
   schedule:
@@ -90,14 +90,23 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          git add *.csv *.json *.txt 2>/dev/null || true
+          # Check what files exist
+          echo "Files to commit:"
+          ls -la *.csv *.json *.txt 2>/dev/null || echo "No files found"
+          
+          # Add files explicitly
+          git add -A *.csv *.json *.txt 2>/dev/null || true
+          
+          # Show what's staged
+          echo ""
+          echo "Staged changes:"
+          git status --short
           
           if git diff-index --quiet HEAD --; then
             echo "ℹ️  No changes to commit"
           else
             git commit -m "🤖 Auto-update: Strategy Results - $(date +'%Y-%m-%d %H:%M')"
-            git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}
-            git push origin ${{ github.ref_name }}
+            git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
             echo "✅ Results committed and pushed"
           fi
 
