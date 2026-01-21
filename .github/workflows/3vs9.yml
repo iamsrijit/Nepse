@@ -1,12 +1,13 @@
-name: Run NEPSE Strategy
+name: NEPSE RSI 
 
 on:
   schedule:
-    - cron: '15 10 * * 0-4'  # 4:15 PM Nepal Time (10:15 UTC), Sun-Thu
+    # Runs every Sunday–Thursday at 8 PM Nepal Time (14:15 UTC)
+    - cron: '15 14 * * 0-4'
   workflow_dispatch:
 
 jobs:
-  run-strategy:
+  run-script:
     runs-on: ubuntu-latest
     env:
       TZ: Asia/Kathmandu
@@ -14,9 +15,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -25,113 +23,43 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pandas numpy requests
+          pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter
 
-      - name: Run gpt5.py
+      - name: Run automation script
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "╔════════════════════════════════════════════════════════╗"
-          echo "║          NEPSE TRADING STRATEGY RUNNER                ║"
-          echo "╚════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "📅 Execution Time: $(date '+%Y-%m-%d %H:%M:%S %Z')"
-          echo "🤖 Triggered by: ${{ github.event_name }}"
-          echo "🆔 Run ID: ${{ github.run_id }}"
-          echo ""
-          echo "════════════════════════════════════════════════════════"
-          echo ""
-          
-          python gpt5.py
-          
-          echo ""
-          echo "✅ Strategy execution complete"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python "rsi.py"
 
-      - name: List generated files
-        if: always()
-        run: |
-          echo ""
-          echo "╔════════════════════════════════════════════════════════╗"
-          echo "║              GENERATED FILES                          ║"
-          echo "╚════════════════════════════════════════════════════════╝"
-          echo ""
-          
-          for file in *.csv *.json *.txt; do
-            if [ -f "$file" ]; then
-              size=$(ls -lh "$file" | awk '{print $5}')
-              lines=$(wc -l < "$file" 2>/dev/null || echo "N/A")
-              echo "📁 $file ($size, $lines lines)"
-            fi
-          done
-          
-          echo ""
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: strategy-results-${{ github.run_id }}
-          path: |
-            *.csv
-            *.json
-            *.txt
-          retention-days: 30
-          if-no-files-found: warn
-
-      - name: Commit results
-        if: success()
+      - name: Commit and push new CSV files
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo ""
-          echo "📤 Committing results to repository..."
-          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # Check what files exist
-          echo "Files to commit:"
-          ls -la *.csv *.json *.txt 2>/dev/null || echo "No files found"
-          
-          # Add files explicitly
-          git add -A *.csv *.json *.txt 2>/dev/null || true
-          
-          # Show what's staged
-          echo ""
-          echo "Staged changes:"
-          git status --short
-          
-          if git diff-index --quiet HEAD --; then
-            echo "ℹ️  No changes to commit"
+          git add *.csv
+          git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d')"
+          git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
+          git push origin main
+
+      - name: Keep only latest 3vs9EMA_Cross_for_ file
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          files=$(ls -1 3vs9EMA_Cross_for_*.csv 2>/dev/null | sort -r)
+          latest_file=$(echo "$files" | head -n 1)
+
+          if [ -n "$files" ] && [ -n "$latest_file" ]; then
+            old_files=$(echo "$files" | grep -v "$latest_file")
+            if [ -n "$old_files" ]; then
+              echo "Keeping latest: $latest_file"
+              echo "Removing old files: $old_files"
+              git rm -q $old_files
+              git diff-index --quiet HEAD || git commit -m "Auto-cleanup old 3vs9EMA_Cross_for_ files, kept $latest_file"
+              git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
+              git push origin main
+            else
+              echo "No old files to clean up."
+            fi
           else
-            git commit -m "🤖 Auto-update: Strategy Results - $(date +'%Y-%m-%d %H:%M')"
-            git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
-            echo "✅ Results committed and pushed"
+            echo "No files to process."
           fi
-
-      - name: Cleanup
-        if: always()
-        run: |
-          echo ""
-          echo "🧹 Cleaning up old files..."
-          
-          # Keep only latest 5 CSV files
-          ls -t *.csv 2>/dev/null | tail -n +6 | xargs -r rm -f
-          ls -t *.json 2>/dev/null | tail -n +6 | xargs -r rm -f
-          
-          echo "✅ Cleanup complete"
-
-      - name: Workflow summary
-        if: always()
-        run: |
-          echo ""
-          echo "╔════════════════════════════════════════════════════════╗"
-          echo "║              WORKFLOW COMPLETE                        ║"
-          echo "╚════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "📊 View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          echo "📥 Download artifacts from the Actions tab"
-          echo ""
-          echo "✅ All tasks completed!"
-          echo ""
