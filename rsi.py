@@ -17,9 +17,24 @@ PORTFOLIO_FILE = "portfolio_trades.csv"
 
 # Symbols to exclude from 52-week low analysis
 EXCLUDED_SYMBOLS = [
-    EXCLUDED_SYMBOLS = [
-    "EBLD852",   "EB89",    "NABILD2089",    "MBLD2085",    "SBID89",    "SBID2090",    "SBLD2091",    "NIMBD90",    "RBBD2088",    "CCBD88",   
-    "ICFCD88",    "EBLD91",    "GBILD84/85",    "GBILD86/87",    "NICD88"]
+    "EBLD852",
+    "EBL",
+    "EB89",
+    "NABILD2089",
+    "MBLD2085",
+    "SBID89",
+    "SBID2090",
+    "SBLD2091",
+    "NIMBD90",
+    "RBBD2088",
+    "CCBD88",
+    "ULBSL",
+    "ICFCD88",
+    "EBLD91",
+    "ANLB",
+    "GBILD84/85",
+    "GBILD86/87",
+    "NICD88"
 ]
 
 GH_TOKEN = os.environ.get("GH_TOKEN")
@@ -112,7 +127,7 @@ one_year_ago = df["Date"].max() - pd.Timedelta(days=365)
 
 # Print excluded symbols if any
 if EXCLUDED_SYMBOLS:
-    print(f"⚠️ Excluding {len(EXCLUDED_SYMBOLS)} symbols: {', '.join(EXCLUDED_SYMBOLS)}")
+    print(f"⚠️ Excluding {len(EXCLUDED_SYMBOLS)} symbols")
 
 for sym in df["Symbol"].unique():
     # Skip excluded symbols
