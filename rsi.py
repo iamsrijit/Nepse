@@ -84,34 +84,36 @@ def delete_old_files(prefix, keep_filename):
                 print(f"⚠️ Failed to delete {name}: {res.text}")
 
 # ===========================
-# GET LATEST MARKET CSV
+# GET LATEST ESPEN CSV
 # ===========================
-def get_latest_csv():
+def get_latest_espen_csv():
     url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents"
     r = requests.get(url, headers=HEADERS, params={"ref": BRANCH})
     r.raise_for_status()
-    files = {
-        f["name"]: f
-        for f in r.json()
-        if f["name"].endswith(".csv")
-        and "RSI" not in f["name"]
-        and "PORTFOLIO" not in f["name"]
-        and "52_WEEK_LOW" not in f["name"]
-    }
-    dated_files = {}
-    for k in files.keys():
-        m = re.search(r"\d{4}-\d{2}-\d{2}", k)
-        if m:
-            dated_files[m.group()] = k
-    if not dated_files:
-        raise FileNotFoundError("No dated market CSV found")
-    latest_date = max(dated_files.keys())
-    return github_raw(dated_files[latest_date])
+    
+    # Find all espen_*.csv files
+    espen_files = {}
+    for f in r.json():
+        name = f["name"]
+        if name.startswith("espen_") and name.endswith(".csv"):
+            m = re.search(r"espen_(\d{4}-\d{2}-\d{2})\.csv", name)
+            if m:
+                espen_files[m.group(1)] = name
+    
+    if not espen_files:
+        raise FileNotFoundError("No espen_*.csv file found")
+    
+    # Get the latest date
+    latest_date = max(espen_files.keys())
+    latest_file = espen_files[latest_date]
+    
+    print(f"📂 Using market data file: {latest_file}")
+    return github_raw(latest_file)
 
 # ===========================
 # LOAD MARKET DATA
 # ===========================
-df = pd.read_csv(get_latest_csv())
+df = pd.read_csv(get_latest_espen_csv())
 df["Date"] = pd.to_datetime(df["Date"])
 df["Close"] = pd.to_numeric(df["Close"])
 df = df.sort_values(["Symbol", "Date"])
@@ -177,16 +179,27 @@ for sym in df["Symbol"].unique():
             "Distance_from_Low_%": round(distance_pct, 2)
         })
 
-signals_df = (
-    pd.DataFrame(signals)
-    .sort_values("Distance_from_Low_%")
-    .reset_index(drop=True)
-)
-
 # Print statistics
 print(f"📊 Symbols with 52-week data: {len(symbols_with_52w_data)}")
 print(f"📊 Symbols without 52-week data: {len(symbols_without_52w_data)}")
-print(f"✅ Found {len(signals_df)} stocks near 52-week low")
+print(f"✅ Found {len(signals)} stocks near 52-week low")
+
+# Create DataFrame - handle empty case
+if signals:
+    signals_df = (
+        pd.DataFrame(signals)
+        .sort_values("Distance_from_Low_%")
+        .reset_index(drop=True)
+    )
+else:
+    # Create empty DataFrame with correct columns
+    signals_df = pd.DataFrame(columns=[
+        "Symbol", 
+        "Date_at_52W_Low", 
+        "Latest_Close", 
+        "52_Week_Low", 
+        "Distance_from_Low_%"
+    ])
 
 low_file = f"52_WEEK_LOW_LATEST_{latest_market_date}.csv"
 upload_to_github(low_file, signals_df.to_csv(index=False))
@@ -253,4 +266,3 @@ upload_to_github(portfolio_file, portfolio_df.to_csv(index=False))
 delete_old_files("PORTFOLIO_REPORT_", portfolio_file)
 
 print("✅ DONE — 52-Week Low & Portfolio dated, old files cleaned")
-
