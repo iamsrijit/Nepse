@@ -1,7 +1,8 @@
-# RSI_LT_30_LATEST_WITH_PORTFOLIO_OVERWRITE.py
 # -*- coding: utf-8 -*-
-
-import os, re, base64
+# 52W_LOW_LATEST_WITH_PORTFOLIO_OVERWRITE.py
+import os
+import re
+import base64
 from datetime import datetime
 import requests
 import pandas as pd
@@ -14,7 +15,6 @@ REPO_OWNER = "iamsrijit"
 REPO_NAME = "Nepse"
 BRANCH = "main"
 PORTFOLIO_FILE = "portfolio_trades.csv"
-
 GH_TOKEN = os.environ.get("GH_TOKEN")
 if not GH_TOKEN:
     raise RuntimeError("GH_TOKEN not set in environment")
@@ -31,7 +31,7 @@ def upload_to_github(filename, content):
     url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{filename}"
     r = requests.get(url, headers=HEADERS)
     payload = {
-        "message": f"Upload {filename}",
+        "message": f"Update {filename} - latest 52W low scan",
         "content": base64.b64encode(content.encode()).decode(),
         "branch": BRANCH
     }
@@ -43,15 +43,14 @@ def upload_to_github(filename, content):
     print("✅ Uploaded/Overwritten:", filename)
 
 # ===========================
-# GET LATEST MARKET CSV
+# GET LATEST MARKET CSV (still used for historical close in portfolio)
 # ===========================
 def get_latest_csv():
     url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents"
     r = requests.get(url, headers=HEADERS, params={"ref": BRANCH})
     r.raise_for_status()
     
-    # keep only market CSVs (ignore RSI/PORTFOLIO)
-    files = {f['name']: f for f in r.json() 
+    files = {f['name']: f for f in r.json()
              if f['name'].endswith(".csv") and "RSI" not in f['name'] and "PORTFOLIO" not in f['name']}
     
     dated_files = {}
@@ -59,71 +58,83 @@ def get_latest_csv():
         m = re.search(r'\d{4}-\d{2}-\d{2}', k)
         if m:
             dated_files[m.group()] = k
-
+    
     if not dated_files:
-        raise FileNotFoundError("No CSV files with date pattern found in repo root.")
-
+        raise FileNotFoundError("No dated CSV files found in repo root.")
+    
     latest_date = max(dated_files.keys())
     return github_raw(dated_files[latest_date])
 
 # ===========================
-# LOAD MARKET DATA
+# FETCH TODAY'S DATA USING nepse-scraper
 # ===========================
-df = pd.read_csv(get_latest_csv())
-df['Date'] = pd.to_datetime(df['Date'])
-df['Close'] = pd.to_numeric(df['Close'])
-df = df.sort_values(['Symbol', 'Date'])
-latest_close_map = df.groupby('Symbol')['Close'].last().to_dict()
+!pip install nepse-scraper -q --upgrade
 
-# ===========================
-# SIGNAL CSV
-# ===========================
-def compute_rsi(series, n=10):
-    delta = series.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    rs = gain.ewm(alpha=1/n, adjust=False).mean() / loss.ewm(alpha=1/n, adjust=False).mean()
-    return 100 - (100 / (1 + rs))
+from nepse_scraper import NepseScraper
 
-signals = []
-for sym in df['Symbol'].unique():
-    s = df[df['Symbol'] == sym].copy()
-    if len(s) < 25:
-        continue
-    s['RSI'] = compute_rsi(s['Close'])
-    s['RSI_EMA_14'] = s['RSI'].ewm(span=14, adjust=False).mean()
-    mask = s['RSI_EMA_14'] < 30
-    if mask.any():
-        row = s.loc[mask].iloc[-1]
-        lc = latest_close_map[sym]
-        pnl = (lc - row['Close']) / row['Close'] * 100
-        signals.append({
-            "Symbol": sym,
-            "Date": row['Date'],
-            "Signal": "Buy",
-            "Entry_Close": round(row['Close'],2),
-            "Latest_Close": round(lc,2),
-            "PnL_%": round(pnl,2)
-        })
+scraper = NepseScraper(verify_ssl=False)
+print("Fetching today's NEPSE data...\n")
 
-signals_df = pd.DataFrame(signals)
+data = scraper.get_today_price()
+content = data.get('content', data) if isinstance(data, dict) else []
 
-# Sort by latest signal date descending
-signals_df = signals_df.sort_values('Date', ascending=False).reset_index(drop=True)
+if not content or not isinstance(content, list):
+    raise RuntimeError("No valid data received from NEPSE API.")
 
-signal_file = "RSI_LT_30_LATEST.csv"
+print(f"✓ {len(content)} stocks fetched\n")
+
+# Compact float converter
+def f(v):
+    try:
+        return float(str(v).replace(",", ""))
+    except:
+        return 0.0
+
+# Build today's DataFrame
+today_df = pd.DataFrame([
+    {
+        'Symbol':       item.get('symbol', ''),
+        'Name':         item.get('securityName', ''),
+        'Close':        f(item.get('closePrice')),
+        'LTP':          f(item.get('lastTradedPrice')),
+        '52W_Low':      f(item.get('fiftyTwoWeekLow')),
+        '52W_High':     f(item.get('fiftyTwoWeekHigh')),
+        '%_from_52WLow': round( (f(item.get('closePrice')) - f(item.get('fiftyTwoWeekLow'))) / f(item.get('fiftyTwoWeekLow')) * 100 , 2) if f(item.get('fiftyTwoWeekLow')) > 0 else 0,
+        'Date':         item.get('businessDate', '')
+    }
+    for item in content if isinstance(item, dict)
+])
+
+# Filter stocks near 52-week low (within ~1.5% tolerance)
+NEAR_LOW_THRESHOLD = 1.5   # adjust if you want stricter (0.5) or looser (3.0)
+low_hits = today_df[today_df['%_from_52WLow'] <= NEAR_LOW_THRESHOLD].copy()
+
+low_hits = low_hits.sort_values('%_from_52WLow').reset_index(drop=True)
+
+# Rename columns to match your previous signal format
+signals_df = low_hits[['Symbol', 'Name', 'Date', 'Close', '52W_Low', '%_from_52WLow']].rename(columns={
+    'Close':     'Latest_Close',
+    '%_from_52WLow': 'Distance_from_Low_%'
+})
+
+signals_df.insert(2, 'Signal', 'Near 52W Low')
+
+signal_file = "RSI_LT_30_LATEST.csv"   # keeping same filename for compatibility
 upload_to_github(signal_file, signals_df.to_csv(index=False))
 
+print(f"Found {len(signals_df)} stocks near 52-week low (within {NEAR_LOW_THRESHOLD}%)\n")
+
 # ===========================
-# PORTFOLIO CSV
+# PORTFOLIO (kept exactly the same)
 # ===========================
+latest_close_map = today_df.set_index('Symbol')['Close'].to_dict()
+
 pt = pd.read_csv(github_raw(PORTFOLIO_FILE))
 pt['Date'] = pd.to_datetime(pt['Date'])
 
 portfolio_rows = []
-
 for symbol in pt['Symbol'].unique():
-    trades = pt[pt['Symbol']==symbol].sort_values('Date')
+    trades = pt[pt['Symbol'] == symbol].sort_values('Date')
     open_lots = deque()
     realized = 0
     for _, t in trades.iterrows():
@@ -146,29 +157,27 @@ for symbol in pt['Symbol'].unique():
                     open_lots[0][0] = lot_qty
 
     open_qty = sum(q for q, _ in open_lots)
-    invested = sum(q*p for q,p in open_lots)
-    last_close = latest_close_map.get(symbol,0)
-    unrealized = open_qty*last_close - invested
+    invested = sum(q * p for q, p in open_lots)
+    last_close = latest_close_map.get(symbol, 0)
+    unrealized = open_qty * last_close - invested
     total_pl = realized + unrealized
-    pl_pct = (total_pl / invested *100) if invested else 0
+    pl_pct = (total_pl / invested * 100) if invested else 0
 
     portfolio_rows.append({
         "Symbol": symbol,
         "Open_Qty": open_qty,
-        "Avg_Cost": round(invested/open_qty,2) if open_qty else 0,
+        "Avg_Cost": round(invested / open_qty, 2) if open_qty else 0,
         "Latest_Close": last_close,
-        "Realized_PnL": round(realized,2),
-        "Unrealized_PnL": round(unrealized,2),
-        "Total_PnL": round(total_pl,2),
-        "Total_PnL_%": round(pl_pct,2)
+        "Realized_PnL": round(realized, 2),
+        "Unrealized_PnL": round(unrealized, 2),
+        "Total_PnL": round(total_pl, 2),
+        "Total_PnL_%": round(pl_pct, 2)
     })
 
 portfolio_df = pd.DataFrame(portfolio_rows)
-
-# Sort portfolio by Total_PnL descending
 portfolio_df = portfolio_df.sort_values('Total_PnL', ascending=False).reset_index(drop=True)
 
 portfolio_file = "PORTFOLIO_REPORT.csv"
 upload_to_github(portfolio_file, portfolio_df.to_csv(index=False))
 
-print("✅ DONE — Signals & Portfolio updated, old files overwritten")
+print("✅ DONE — 52W Low signals & Portfolio updated") 
