@@ -15,6 +15,13 @@ REPO_NAME = "Nepse"
 BRANCH = "main"
 PORTFOLIO_FILE = "portfolio_trades.csv"
 
+# Symbols to exclude from 52-week low analysis
+EXCLUDED_SYMBOLS = [
+    EXCLUDED_SYMBOLS = [
+    "EBLD852",   "EB89",    "NABILD2089",    "MBLD2085",    "SBID89",    "SBID2090",    "SBLD2091",    "NIMBD90",    "RBBD2088",    "CCBD88",   
+    "ICFCD88",    "EBLD91",    "GBILD84/85",    "GBILD86/87",    "NICD88"]
+]
+
 GH_TOKEN = os.environ.get("GH_TOKEN")
 if not GH_TOKEN:
     raise RuntimeError("GH_TOKEN not set in environment")
@@ -103,7 +110,15 @@ latest_close_map = df.groupby("Symbol")["Close"].last().to_dict()
 signals = []
 one_year_ago = df["Date"].max() - pd.Timedelta(days=365)
 
+# Print excluded symbols if any
+if EXCLUDED_SYMBOLS:
+    print(f"⚠️ Excluding {len(EXCLUDED_SYMBOLS)} symbols: {', '.join(EXCLUDED_SYMBOLS)}")
+
 for sym in df["Symbol"].unique():
+    # Skip excluded symbols
+    if sym in EXCLUDED_SYMBOLS:
+        continue
+    
     s = df[df["Symbol"] == sym].copy()
     
     # Filter to last 52 weeks
@@ -142,6 +157,8 @@ signals_df = (
 low_file = f"52_WEEK_LOW_LATEST_{latest_market_date}.csv"
 upload_to_github(low_file, signals_df.to_csv(index=False))
 delete_old_files("52_WEEK_LOW_LATEST_", low_file)
+
+print(f"✅ Found {len(signals_df)} stocks near 52-week low")
 
 # ===========================
 # PORTFOLIO REPORT
