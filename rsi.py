@@ -253,4 +253,4 @@ upload_to_github(portfolio_file, portfolio_df.to_csv(index=False))
 delete_old_files("PORTFOLIO_REPORT_", portfolio_file)
 
 print("✅ DONE — 52-Week Low & Portfolio dated, old files cleaned")
-```
+
