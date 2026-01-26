@@ -160,7 +160,7 @@ for item in content_data:
         'Low': low_price,
         'Close': close_price,
         'Percent Change': round(percent_change, 2),
-        'Volume': volume_daily',
+        'Volume': volume_daily,
         '52High':fiftyTwoWeekHigh,
         '52Low':fiftyTwoWeekLow
     })
