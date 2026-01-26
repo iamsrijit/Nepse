@@ -145,12 +145,12 @@ else:
 # Parse the CSV
 df = pd.read_csv(StringIO(reconstructed_csv), sep='\t')
 
-# Clean column names (remove extra spaces)
+# CRITICAL FIX: Clean column names IMMEDIATELY after loading
 df.columns = df.columns.str.strip()
 
 print(f"📊 Loaded {len(df)} rows with columns: {', '.join(df.columns)}")
 
-# Convert date formats (handle both MM/DD/YYYY and M/D/YYYY)
+# Now we can safely access the columns
 df["Date"] = pd.to_datetime(df["Date"], format='%m/%d/%Y', errors='coerce')
 
 # If that didn't work, try inferring the format
