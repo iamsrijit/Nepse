@@ -129,6 +129,9 @@ one_year_ago = df["Date"].max() - pd.Timedelta(days=365)
 if EXCLUDED_SYMBOLS:
     print(f"⚠️ Excluding {len(EXCLUDED_SYMBOLS)} symbols")
 
+symbols_with_52w_data = []
+symbols_without_52w_data = []
+
 for sym in df["Symbol"].unique():
     # Skip excluded symbols
     if sym in EXCLUDED_SYMBOLS:
@@ -136,10 +139,21 @@ for sym in df["Symbol"].unique():
     
     s = df[df["Symbol"] == sym].copy()
     
+    # Get the earliest date for this symbol
+    earliest_date = s["Date"].min()
+    
+    # Check if symbol has at least 52 weeks of data
+    if earliest_date > one_year_ago:
+        symbols_without_52w_data.append(sym)
+        continue
+    
+    # Symbol has 52 weeks of data
+    symbols_with_52w_data.append(sym)
+    
     # Filter to last 52 weeks
     s_52w = s[s["Date"] >= one_year_ago]
     
-    if len(s_52w) < 10:  # Need at least 10 days of data
+    if len(s_52w) < 10:  # Need at least 10 days of data in 52-week period
         continue
     
     # Calculate 52-week low
@@ -169,11 +183,14 @@ signals_df = (
     .reset_index(drop=True)
 )
 
+# Print statistics
+print(f"📊 Symbols with 52-week data: {len(symbols_with_52w_data)}")
+print(f"📊 Symbols without 52-week data: {len(symbols_without_52w_data)}")
+print(f"✅ Found {len(signals_df)} stocks near 52-week low")
+
 low_file = f"52_WEEK_LOW_LATEST_{latest_market_date}.csv"
 upload_to_github(low_file, signals_df.to_csv(index=False))
 delete_old_files("52_WEEK_LOW_LATEST_", low_file)
-
-print(f"✅ Found {len(signals_df)} stocks near 52-week low")
 
 # ===========================
 # PORTFOLIO REPORT
@@ -236,3 +253,4 @@ upload_to_github(portfolio_file, portfolio_df.to_csv(index=False))
 delete_old_files("PORTFOLIO_REPORT_", portfolio_file)
 
 print("✅ DONE — 52-Week Low & Portfolio dated, old files cleaned")
+```
