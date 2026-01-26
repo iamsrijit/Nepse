@@ -133,78 +133,81 @@ for i, line in enumerate(lines):
 if header_line is None:
     raise ValueError("Could not find header line with Symbol, Date, Close columns")
 
-# Reconstruct CSV with header at top
+# Reconstruct CSV with header at top and data below it
 if data_start_index > 0:
-    # Header is not at the top, move it
-    data_lines = lines[:data_start_index]
+    # Header is not at the top, we need data that comes AFTER the header
+    data_lines = lines[data_start_index + 1:]  # FIX: Get lines AFTER header, not before
     reconstructed_csv = header_line + '\n' + '\n'.join(data_lines)
 else:
     # Header is already at top
     reconstructed_csv = csv_content
 
-# Parse the CSV - try tab separator first, then comma
-try:
-    df = pd.read_csv(StringIO(reconstructed_csv), sep='\t')
-    # Check if parsing worked (multiple columns)
-    if len(df.columns) == 1:
-        # Only one column, try comma separator
-        df = pd.read_csv(StringIO(reconstructed_csv), sep=',')
-except:
-    # Fallback to comma separator
-    df = pd.read_csv(StringIO(reconstructed_csv), sep=',')
+# Detect separator by checking the header
+if '\t' in header_line:
+    sep = '\t'
+elif ',' in header_line:
+    sep = ','
+else:
+    sep = ','  # default
 
-# CRITICAL FIX: Clean column names IMMEDIATELY after loading
+print(f"🔍 Detected separator: {repr(sep)}")
+
+# Parse the CSV
+df = pd.read_csv(StringIO(reconstructed_csv), sep=sep)
+
+# Clean column names IMMEDIATELY
 df.columns = df.columns.str.strip()
 
-# Debug: Print actual column names
 print(f"📊 Loaded {len(df)} rows")
-print(f"📋 Column names: {list(df.columns)}")
-print(f"📋 First column name repr: {repr(df.columns[0])}")
+print(f"📋 Columns: {list(df.columns)}")
 
-# Now we can safely access the columns
-# Verify 'Date' column exists
-if 'Date' not in df.columns:
-    print("❌ ERROR: 'Date' column not found!")
-    print(f"Available columns: {list(df.columns)}")
-    print(f"Column name representations: {[repr(c) for c in df.columns]}")
-    raise KeyError("'Date' column not found in DataFrame")
+# Verify required columns
+required_cols = ['Symbol', 'Date', 'Close']
+missing = [c for c in required_cols if c not in df.columns]
+if missing:
+    raise ValueError(f"Missing required columns: {missing}")
 
 # Show sample dates for debugging
-print(f"📅 Sample dates from CSV: {df['Date'].head(3).tolist()}")
+print(f"📅 Sample dates: {df['Date'].head(3).tolist()}")
 
-# Store original date column in case we need to retry
-original_dates = df["Date"].copy()
+# Parse dates - try different formats
+date_col = df['Date'].astype(str).str.strip()  # Ensure string and strip whitespace
 
-# Try multiple date formats
-df["Date"] = pd.to_datetime(df["Date"], format='%m/%d/%Y', errors='coerce')
+# Try format 1: M/D/YYYY or MM/DD/YYYY
+df['Date'] = pd.to_datetime(date_col, format='%m/%d/%Y', errors='coerce')
+parsed = df['Date'].notna().sum()
 
-# If that didn't work, try other common formats
-if df["Date"].isna().all():
-    print("⚠️ Format %m/%d/%Y failed, trying %Y-%m-%d...")
-    df["Date"] = pd.to_datetime(original_dates, format='%Y-%m-%d', errors='coerce')
+if parsed == 0:
+    # Try format 2: YYYY-MM-DD
+    print("⚠️ Trying format YYYY-MM-DD...")
+    df['Date'] = pd.to_datetime(date_col, format='%Y-%m-%d', errors='coerce')
+    parsed = df['Date'].notna().sum()
 
-if df["Date"].isna().all():
-    print("⚠️ Format %Y-%m-%d failed, trying pandas auto-detection...")
-    df["Date"] = pd.to_datetime(original_dates, errors='coerce')
+if parsed == 0:
+    # Try format 3: Auto-detect
+    print("⚠️ Trying auto-detection...")
+    df['Date'] = pd.to_datetime(date_col, errors='coerce')
+    parsed = df['Date'].notna().sum()
 
-# Check if parsing succeeded
-parsed_count = df["Date"].notna().sum()
-print(f"✅ Successfully parsed {parsed_count} out of {len(df)} dates")
+print(f"✅ Parsed {parsed}/{len(df)} dates")
 
-if parsed_count == 0:
-    print("❌ ERROR: All dates failed to parse!")
-    print(f"Sample raw date values: {original_dates.head(10).tolist()}")
-    raise ValueError("Unable to parse any dates from the Date column")
+if parsed == 0:
+    print(f"❌ Failed to parse dates. Sample values: {date_col.head(10).tolist()}")
+    raise ValueError("Could not parse any dates")
 
+# Convert Close to numeric
 df["Close"] = pd.to_numeric(df["Close"], errors='coerce')
+
+# Drop rows with missing critical data
 df = df.dropna(subset=["Symbol", "Date", "Close"])
 df = df.sort_values(["Symbol", "Date"])
+
+print(f"📊 After cleaning: {len(df)} rows, {df['Symbol'].nunique()} symbols")
 
 latest_market_date = df["Date"].max().strftime("%Y-%m-%d")
 latest_close_map = df.groupby("Symbol")["Close"].last().to_dict()
 
 print(f"📅 Latest market date: {latest_market_date}")
-print(f"📈 Total symbols: {df['Symbol'].nunique()}")
 
 # ===========================
 # 52-WEEK LOW SIGNALS
@@ -212,7 +215,6 @@ print(f"📈 Total symbols: {df['Symbol'].nunique()}")
 signals = []
 one_year_ago = df["Date"].max() - pd.Timedelta(days=365)
 
-# Print excluded symbols if any
 if EXCLUDED_SYMBOLS:
     print(f"⚠️ Excluding {len(EXCLUDED_SYMBOLS)} symbols")
 
@@ -220,40 +222,28 @@ symbols_with_52w_data = []
 symbols_without_52w_data = []
 
 for sym in df["Symbol"].unique():
-    # Skip excluded symbols
     if sym in EXCLUDED_SYMBOLS:
         continue
     
     s = df[df["Symbol"] == sym].copy()
-    
-    # Get the earliest date for this symbol
     earliest_date = s["Date"].min()
     
-    # Check if symbol has at least 52 weeks of data
     if earliest_date > one_year_ago:
         symbols_without_52w_data.append(sym)
         continue
     
-    # Symbol has 52 weeks of data
     symbols_with_52w_data.append(sym)
-    
-    # Filter to last 52 weeks
     s_52w = s[s["Date"] >= one_year_ago]
     
-    if len(s_52w) < 10:  # Need at least 10 days of data in 52-week period
+    if len(s_52w) < 10:
         continue
     
-    # Calculate 52-week low
     low_52w = s_52w["Close"].min()
     latest_close = latest_close_map[sym]
-    
-    # Check if latest close is within 1.5% of 52-week low
-    threshold = low_52w * 1.015  # 1.5% above 52-week low
+    threshold = low_52w * 1.015
     
     if latest_close <= threshold:
         distance_pct = ((latest_close - low_52w) / low_52w) * 100
-        
-        # Find the date when it hit the 52-week low
         low_date = s_52w[s_52w["Close"] == low_52w]["Date"].iloc[-1]
         
         signals.append({
@@ -264,26 +254,15 @@ for sym in df["Symbol"].unique():
             "Distance_from_Low_%": round(distance_pct, 2)
         })
 
-# Print statistics
-print(f"📊 Symbols with 52-week data: {len(symbols_with_52w_data)}")
-print(f"📊 Symbols without 52-week data: {len(symbols_without_52w_data)}")
+print(f"📊 Symbols with 52w data: {len(symbols_with_52w_data)}")
+print(f"📊 Symbols without 52w data: {len(symbols_without_52w_data)}")
 print(f"✅ Found {len(signals)} stocks near 52-week low")
 
-# Create DataFrame - handle empty case
 if signals:
-    signals_df = (
-        pd.DataFrame(signals)
-        .sort_values("Distance_from_Low_%")
-        .reset_index(drop=True)
-    )
+    signals_df = pd.DataFrame(signals).sort_values("Distance_from_Low_%").reset_index(drop=True)
 else:
-    # Create empty DataFrame with correct columns
     signals_df = pd.DataFrame(columns=[
-        "Symbol", 
-        "Date_at_52W_Low", 
-        "Latest_Close", 
-        "52_Week_Low", 
-        "Distance_from_Low_%"
+        "Symbol", "Date_at_52W_Low", "Latest_Close", "52_Week_Low", "Distance_from_Low_%"
     ])
 
 low_file = f"52_WEEK_LOW_LATEST_{latest_market_date}.csv"
