@@ -130,7 +130,7 @@ filtered_data = []
 # Define the column names
 
 
-columns = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume']
+columns = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume',"52High","52Low"]
 # Iterate over each item in the 'content' section
 def to_float(x):
     try:
@@ -147,6 +147,8 @@ for item in content_data:
     low_price   = to_float(item.get('lowPrice'))
     close_price = to_float(item.get('closePrice'))
     volume_daily = to_float(item.get('totalTradedQuantity'))
+    fiftyTwoWeekHigh=to_float(item.get('fiftyTwoWeekHigh'))
+    fiftyTwoWeekLow=to_float(item.get('fiftyTwoWeekLow'))
 
     percent_change = ((close_price - open_price) / open_price * 100) if open_price > 0 else 0
 
@@ -158,7 +160,9 @@ for item in content_data:
         'Low': low_price,
         'Close': close_price,
         'Percent Change': round(percent_change, 2),
-        'Volume': volume_daily
+        'Volume': volume_daily'
+        '52High':fiftyTwoWeekHigh,
+        '52Low':fiftyTwoWeekLow
     })
 
 
@@ -269,7 +273,7 @@ try:
     secondss = pd.read_csv(latest_file_url)
 
     # Assuming the column names are the same as in your example
-    secondss.columns = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume']
+    secondss.columns = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume',"52High","52Low"]
 
     print(secondss.head())
 except Exception as e:
@@ -327,7 +331,7 @@ else:
 
     # Write the headers to the CSV file
     with open(output_file_name, 'w') as f:
-        headers = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume']
+        headers = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume',"52High","52Low"]
         f.write(','.join(headers) + '\n')
 
     # Append the final DataFrame without headers to the CSV file
@@ -350,12 +354,7 @@ finall_df = pd.DataFrame()
 
 # List of symbols to exclude
 exclude_symbols = [
-    'SAEF', 'SEF', 'CMF1', 'NICGF', 'NBF2', 'CMF2', 'NMB50', 'SIGS2', 'NICBF',
-    'SFMF', 'LUK', 'SLCF', 'KEF', 'SBCF', 'PSF', 'NIBSF2', 'NICSF', 'RMF1',
-    'NBF3', 'MMF1', 'KDBY', 'NICFC', 'GIBF1', 'NSIF2', 'SAGF', 'NIBLGF',
-    'SFEF', 'PRSF', 'C30MF', 'SIGS3', 'RMF2', 'LVF2', 'H8020', 'NICGF2',
-    'NIBLSTF', 'KSY' ,'NBLD87', 'PBD88', 'OTHERS','HIDCLP','NIMBPO','MUTUAL',
-    'CIT','ILI','LEMF','NIBLPF','INVESTMENT','SENFLOAT','HEIP' ,'SBID83','NICAD8283'
+    
 ]
 
 for df in dfs:
@@ -399,7 +398,7 @@ else:
 
     # Write the headers to the CSV file
     with open(output_file_name, 'w') as f:
-        headers = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume']
+        headers = ['Symbol', 'Date', 'Open', 'High', 'Low', 'Close', 'Percent Change', 'Volume',"52High","52Low"]
         f.write(','.join(headers) + '\n')
 
     # Append the final DataFrame without headers to the CSV file
