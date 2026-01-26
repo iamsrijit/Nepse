@@ -6,6 +6,7 @@ import base64
 import requests
 import pandas as pd
 from collections import deque
+from io import StringIO
 
 # ===========================
 # CONFIG
@@ -113,13 +114,58 @@ def get_latest_espen_csv():
 # ===========================
 # LOAD MARKET DATA
 # ===========================
-df = pd.read_csv(get_latest_espen_csv())
-df["Date"] = pd.to_datetime(df["Date"])
-df["Close"] = pd.to_numeric(df["Close"])
+# Read the CSV content
+csv_url = get_latest_espen_csv()
+response = requests.get(csv_url)
+csv_content = response.text
+
+# Find the header line
+lines = csv_content.strip().split('\n')
+header_line = None
+data_start_index = 0
+
+for i, line in enumerate(lines):
+    if 'Symbol' in line and 'Date' in line and 'Close' in line:
+        header_line = line
+        data_start_index = i
+        break
+
+if header_line is None:
+    raise ValueError("Could not find header line with Symbol, Date, Close columns")
+
+# Reconstruct CSV with header at top
+if data_start_index > 0:
+    # Header is not at the top, move it
+    data_lines = lines[:data_start_index]
+    reconstructed_csv = header_line + '\n' + '\n'.join(data_lines)
+else:
+    # Header is already at top
+    reconstructed_csv = csv_content
+
+# Parse the CSV
+df = pd.read_csv(StringIO(reconstructed_csv), sep='\t')
+
+# Clean column names (remove extra spaces)
+df.columns = df.columns.str.strip()
+
+print(f"📊 Loaded {len(df)} rows with columns: {', '.join(df.columns)}")
+
+# Convert date formats (handle both MM/DD/YYYY and M/D/YYYY)
+df["Date"] = pd.to_datetime(df["Date"], format='%m/%d/%Y', errors='coerce')
+
+# If that didn't work, try inferring the format
+if df["Date"].isna().all():
+    df["Date"] = pd.to_datetime(df["Date"], infer_datetime_format=True)
+
+df["Close"] = pd.to_numeric(df["Close"], errors='coerce')
+df = df.dropna(subset=["Symbol", "Date", "Close"])
 df = df.sort_values(["Symbol", "Date"])
 
 latest_market_date = df["Date"].max().strftime("%Y-%m-%d")
 latest_close_map = df.groupby("Symbol")["Close"].last().to_dict()
+
+print(f"📅 Latest market date: {latest_market_date}")
+print(f"📈 Total symbols: {df['Symbol'].nunique()}")
 
 # ===========================
 # 52-WEEK LOW SIGNALS
