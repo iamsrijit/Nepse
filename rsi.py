@@ -169,11 +169,32 @@ if 'Date' not in df.columns:
     print(f"Column name representations: {[repr(c) for c in df.columns]}")
     raise KeyError("'Date' column not found in DataFrame")
 
+# Show sample dates for debugging
+print(f"📅 Sample dates from CSV: {df['Date'].head(3).tolist()}")
+
+# Store original date column in case we need to retry
+original_dates = df["Date"].copy()
+
+# Try multiple date formats
 df["Date"] = pd.to_datetime(df["Date"], format='%m/%d/%Y', errors='coerce')
 
-# If that didn't work, try inferring the format
+# If that didn't work, try other common formats
 if df["Date"].isna().all():
-    df["Date"] = pd.to_datetime(df["Date"], infer_datetime_format=True)
+    print("⚠️ Format %m/%d/%Y failed, trying %Y-%m-%d...")
+    df["Date"] = pd.to_datetime(original_dates, format='%Y-%m-%d', errors='coerce')
+
+if df["Date"].isna().all():
+    print("⚠️ Format %Y-%m-%d failed, trying pandas auto-detection...")
+    df["Date"] = pd.to_datetime(original_dates, errors='coerce')
+
+# Check if parsing succeeded
+parsed_count = df["Date"].notna().sum()
+print(f"✅ Successfully parsed {parsed_count} out of {len(df)} dates")
+
+if parsed_count == 0:
+    print("❌ ERROR: All dates failed to parse!")
+    print(f"Sample raw date values: {original_dates.head(10).tolist()}")
+    raise ValueError("Unable to parse any dates from the Date column")
 
 df["Close"] = pd.to_numeric(df["Close"], errors='coerce')
 df = df.dropna(subset=["Symbol", "Date", "Close"])
