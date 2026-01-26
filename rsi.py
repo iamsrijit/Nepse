@@ -142,15 +142,33 @@ else:
     # Header is already at top
     reconstructed_csv = csv_content
 
-# Parse the CSV
-df = pd.read_csv(StringIO(reconstructed_csv), sep='\t')
+# Parse the CSV - try tab separator first, then comma
+try:
+    df = pd.read_csv(StringIO(reconstructed_csv), sep='\t')
+    # Check if parsing worked (multiple columns)
+    if len(df.columns) == 1:
+        # Only one column, try comma separator
+        df = pd.read_csv(StringIO(reconstructed_csv), sep=',')
+except:
+    # Fallback to comma separator
+    df = pd.read_csv(StringIO(reconstructed_csv), sep=',')
 
 # CRITICAL FIX: Clean column names IMMEDIATELY after loading
 df.columns = df.columns.str.strip()
 
-print(f"📊 Loaded {len(df)} rows with columns: {', '.join(df.columns)}")
+# Debug: Print actual column names
+print(f"📊 Loaded {len(df)} rows")
+print(f"📋 Column names: {list(df.columns)}")
+print(f"📋 First column name repr: {repr(df.columns[0])}")
 
 # Now we can safely access the columns
+# Verify 'Date' column exists
+if 'Date' not in df.columns:
+    print("❌ ERROR: 'Date' column not found!")
+    print(f"Available columns: {list(df.columns)}")
+    print(f"Column name representations: {[repr(c) for c in df.columns]}")
+    raise KeyError("'Date' column not found in DataFrame")
+
 df["Date"] = pd.to_datetime(df["Date"], format='%m/%d/%Y', errors='coerce')
 
 # If that didn't work, try inferring the format
