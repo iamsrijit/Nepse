@@ -1,60 +1,130 @@
-# ... (keep all previous imports, config, github helpers, market data loading unchanged)
+# rsi.py
+import os
+import re
+import requests
+import pandas as pd
+import base64
+from datetime import timedelta
+from io import StringIO
 
-# ===========================
-# CONFIG (update threshold here)
-# ===========================
-NEAR_52W_THRESHOLD_PCT = 1.5   # only stocks ≤ this % above 52w low
+# ────────────────────────────────────────────────
+# CONFIG ─ same as your main script
+REPO_OWNER = "iamsrijit"
+REPO_NAME  = "Nepse"
+BRANCH     = "main"
+GH_TOKEN   = os.environ.get("GH_TOKEN")
 
-# ... (keep market data loading, latest_close_map, one_year_ago unchanged)
+if not GH_TOKEN:
+    raise RuntimeError("GH_TOKEN environment variable not set")
 
-# ===========================
-# 52-WEEK LOW ANALYSIS — only stocks ≤ 1.5% from low
-# ===========================
+HEADERS = {"Authorization": f"token {GH_TOKEN}"}
+
+EXCLUDED_SYMBOLS = ["EBLD852", "EBL", ...]  # copy your full list
+
+# RSI settings
+RSI_PERIOD = 14
+RSI_OVERBOUGHT = 70
+RSI_OVERSOLD   = 30
+# ────────────────────────────────────────────────
+
+def github_raw(path):
+    return f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/{path}"
+
+def get_latest_espen_url():
+    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents"
+    r = requests.get(url, headers=HEADERS, params={"ref": BRANCH})
+    r.raise_for_status()
+    
+    espen_files = {}
+    for f in r.json():
+        name = f["name"]
+        if name.startswith("espen_") and name.endswith(".csv"):
+            m = re.search(r"espen_(\d{4}-\d{2}-\d{2})\.csv", name)
+            if m:
+                espen_files[m.group(1)] = name
+    
+    if not espen_files:
+        raise FileNotFoundError("No espen_*.csv found")
+    
+    latest_date = max(espen_files)
+    return github_raw(espen_files[latest_date]), latest_date
+
+# ─── Load market data ───────────────────────────────────────
+csv_url, latest_date_str = get_latest_espen_url()
+resp = requests.get(csv_url)
+if resp.status_code != 200:
+    raise RuntimeError(f"Failed to download CSV: {resp.status_code}")
+
+content = resp.text
+lines = content.strip().split('\n')
+
+# Find header line
+header_idx = next((i for i, ln in enumerate(lines) if 'Symbol' in ln and 'Close' in ln), None)
+if header_idx is None:
+    raise ValueError("No header line found in espen CSV")
+
+header = lines[header_idx]
+data = '\n'.join(lines[header_idx+1:])
+
+sep = '\t' if '\t' in header else ','
+df_market = pd.read_csv(StringIO(header + '\n' + data), sep=sep)
+df_market.columns = df_market.columns.str.strip()
+
+df_market['Date']  = pd.to_datetime(df_market['Date'].astype(str).str.strip(), errors='coerce')
+df_market['Close'] = pd.to_numeric(df_market['Close'], errors='coerce')
+df_market = df_market.dropna(subset=['Symbol', 'Date', 'Close'])
+df_market = df_market.sort_values(['Symbol', 'Date'])
+
+print(f"Loaded {len(df_market)} rows | {df_market['Symbol'].nunique()} symbols")
+print(f"Latest date: {df_market['Date'].max().date()}")
+
+# ─── Now your RSI calculation ─────────────────────────────────
 signals = []
+
 for sym in df_market["Symbol"].unique():
     if sym in EXCLUDED_SYMBOLS:
         continue
-
-    s = df_market[df_market["Symbol"] == sym]
-    if s["Date"].min() > one_year_ago:
+        
+    s = df_market[df_market["Symbol"] == sym].copy()
+    if len(s) < RSI_PERIOD + 10:   # need enough data
         continue
-
-    s_52w = s[s["Date"] >= one_year_ago]
-    if len(s_52w) < 10:  # minimum data points
+        
+    # Calculate RSI (simple version)
+    delta = s['Close'].diff()
+    gain = delta.where(delta > 0, 0).rolling(window=RSI_PERIOD).mean()
+    loss = -delta.where(delta < 0, 0).rolling(window=RSI_PERIOD).mean()
+    
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    
+    latest_rsi = rsi.iloc[-1]
+    
+    if pd.isna(latest_rsi):
         continue
-
-    low_52w = s_52w["Close"].min()
-    latest = latest_close_map.get(sym, 0)
-    if latest <= 0:
-        continue
-
-    distance_pct = ((latest - low_52w) / low_52w) * 100
-
-    # Only include if within threshold
-    if distance_pct <= NEAR_52W_THRESHOLD_PCT:
-        low_date = s_52w[s_52w["Close"] == low_52w]["Date"].iloc[-1]
-
+        
+    latest_close = s['Close'].iloc[-1]
+    
+    if latest_rsi <= RSI_OVERSOLD:
         signals.append({
             "Symbol": sym,
-            "52W_Low_Date": low_date.strftime("%Y-%m-%d"),
-            "Latest_Close": round(latest, 2),
-            "52W_Low": round(low_52w, 2),
-            "Distance_from_52W_Low_%": round(distance_pct, 2)
+            "Latest_Close": round(latest_close, 2),
+            "RSI": round(latest_rsi, 2),
+            "Status": "Oversold (potential buy)"
+        })
+    elif latest_rsi >= RSI_OVERBOUGHT:
+        signals.append({
+            "Symbol": sym,
+            "Latest_Close": round(latest_close, 2),
+            "RSI": round(latest_rsi, 2),
+            "Status": "Overbought (potential sell)"
         })
 
-signals_df = pd.DataFrame(signals).sort_values("Distance_from_52W_Low_%").reset_index(drop=True)
-print(f"✅ Found {len(signals_df)} stocks ≤ {NEAR_52W_THRESHOLD_PCT}% above 52-week low")
-
-full_low_file = f"STOCKS_NEAR_52W_LOW_{latest_market_date}.csv"  # nicer name
-upload_to_github(full_low_file, signals_df.to_csv(index=False))
-delete_old_files("STOCKS_NEAR_52W_LOW_", full_low_file)
-delete_old_files("52_WEEK_LOW_LATEST_", None)  # optional: clean up old naming if you want
-
-# ===========================
-# PORTFOLIO REPORT (keep as is — includes distance column for your holdings)
-# ... (keep the entire portfolio section unchanged)
-# It still generates PORTFOLIO_REPORT_*.csv with Distance_from_52W_Low_% column
-
-print("✅ DONE")
-print(f"   • Created: {full_low_file} → all stocks ≤ {NEAR_52W_THRESHOLD_PCT}% from 52w low")
-print(f"   • Created: PORTFOLIO_REPORT_{latest_market_date}.csv → your holdings + distance info")
+if signals:
+    df_signals = pd.DataFrame(signals).sort_values("RSI")
+    print("\nRSI Signals:")
+    print(df_signals.to_string(index=False))
+    
+    # Optional: save to GitHub like your other script
+    # upload_to_github(f"RSI_SIGNALS_{latest_date_str}.csv", df_signals.to_csv(index=False))
+else:
+    print("No strong RSI signals (oversold/overbought) found.")
