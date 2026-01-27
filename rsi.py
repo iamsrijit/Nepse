@@ -212,42 +212,53 @@ print(f"📈 Total symbols: {df['Symbol'].nunique()}")
 signals_threshold = []  # Stocks within 1.5% of 52-week low
 all_distances = []  # All stocks with distance from low and high
 
-one_year_ago = df["Date"].max() - pd.Timedelta(days=365)
-
 # Print excluded symbols if any
 if EXCLUDED_SYMBOLS:
     print(f"⚠️ Excluding {len(EXCLUDED_SYMBOLS)} symbols")
 
+# Check if 52High and 52Low columns exist in the CSV
+has_52w_columns = '52High' in df.columns and '52Low' in df.columns
+
+if not has_52w_columns:
+    print("⚠️ Warning: 52High and 52Low columns not found in CSV. Columns available:", list(df.columns))
+    print("ℹ️ The CSV should have columns: Symbol, Date, Open, High, Low, Close, Percent Change, Volume, 52High, 52Low")
+
 symbols_with_52w_data = []
 symbols_without_52w_data = []
 
-for sym in df["Symbol"].unique():
+# Get the latest data for each symbol (most recent date)
+latest_data = df.sort_values('Date').groupby('Symbol').last().reset_index()
+
+for _, row in latest_data.iterrows():
+    sym = row['Symbol']
+    
     # Skip excluded symbols
     if sym in EXCLUDED_SYMBOLS:
         continue
     
-    s = df[df["Symbol"] == sym].copy()
+    # Get 52-week high and low from the CSV columns
+    if has_52w_columns:
+        high_52w = pd.to_numeric(row['52High'], errors='coerce')
+        low_52w = pd.to_numeric(row['52Low'], errors='coerce')
+    else:
+        # Fallback: calculate from historical data if columns don't exist
+        s = df[df["Symbol"] == sym].copy()
+        one_year_ago = df["Date"].max() - pd.Timedelta(days=365)
+        s_52w = s[s["Date"] >= one_year_ago]
+        
+        if len(s_52w) < 10:
+            symbols_without_52w_data.append(sym)
+            continue
+        
+        high_52w = s_52w["Close"].max()
+        low_52w = s_52w["Close"].min()
     
-    # Get the earliest date for this symbol
-    earliest_date = s["Date"].min()
-    
-    # Check if symbol has at least 52 weeks of data
-    if earliest_date > one_year_ago:
+    # Check if we have valid 52-week data
+    if pd.isna(high_52w) or pd.isna(low_52w) or high_52w == 0 or low_52w == 0:
         symbols_without_52w_data.append(sym)
         continue
     
-    # Symbol has 52 weeks of data
     symbols_with_52w_data.append(sym)
-    
-    # Filter to last 52 weeks
-    s_52w = s[s["Date"] >= one_year_ago]
-    
-    if len(s_52w) < 10:  # Need at least 10 days of data in 52-week period
-        continue
-    
-    # Calculate 52-week low and high
-    low_52w = s_52w["Close"].min()
-    high_52w = s_52w["Close"].max()
     
     # Use latest_close_map to get the close price (same logic as portfolio)
     latest_close = latest_close_map.get(sym, 0)
@@ -258,10 +269,6 @@ for sym in df["Symbol"].unique():
     # Calculate distances
     distance_from_low_pct = ((latest_close - low_52w) / low_52w) * 100
     distance_from_high_pct = ((latest_close - high_52w) / high_52w) * 100
-    
-    # Find the dates when it hit the 52-week low and high
-    low_date = s_52w[s_52w["Close"] == low_52w]["Date"].iloc[-1]
-    high_date = s_52w[s_52w["Close"] == high_52w]["Date"].iloc[-1]
     
     # Add to all_distances (for CSV 2)
     all_distances.append({
@@ -282,7 +289,7 @@ for sym in df["Symbol"].unique():
             "Latest_Close": round(latest_close, 2),
             "52_Week_Low": round(low_52w, 2),
             "Distance_from_Low_%": round(distance_from_low_pct, 2),
-            "Date_at_52W_Low": low_date.strftime("%Y-%m-%d")
+            "Date_at_52W_Low": "N/A"  # Date not available when using CSV columns
         })
 
 # Print statistics
