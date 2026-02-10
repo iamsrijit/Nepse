@@ -18,7 +18,7 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
-          pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter
+          pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter tqdm joblib
       - name: Run RSI automation script
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
