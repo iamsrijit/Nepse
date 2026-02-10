@@ -1,35 +1,32 @@
 name: NEPSE RSI 
-
 on:
   schedule:
     # Runs every Sunday–Thursday at 8 PM Nepal Time (14:15 UTC)
     - cron: '15 14 * * 0-4'
   workflow_dispatch:
-
 jobs:
   run-script:
     runs-on: ubuntu-latest
     env:
       TZ: Asia/Kathmandu
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
       - name: Install dependencies
         run: |
           pip install nepse-scraper pandas requests beautifulsoup4 gitpython numpy xlsxwriter
-
-      - name: Run automation script
+      - name: Run RSI automation script
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python "rsi.py"
-
+      - name: Run EMA automation script
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python "ema.py"
       - name: Commit and push new CSV files
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,14 +37,12 @@ jobs:
           git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d')"
           git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
           git push origin main
-
       - name: Keep only latest 3vs9EMA_Cross_for_ file
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           files=$(ls -1 3vs9EMA_Cross_for_*.csv 2>/dev/null | sort -r)
           latest_file=$(echo "$files" | head -n 1)
-
           if [ -n "$files" ] && [ -n "$latest_file" ]; then
             old_files=$(echo "$files" | grep -v "$latest_file")
             if [ -n "$old_files" ]; then
