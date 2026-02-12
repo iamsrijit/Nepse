@@ -23,6 +23,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python "rsi.py"
+      - name: backtest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python "BACKTEST_MULTI_FACTOR.py"
       - name: Run EMA automation script
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
