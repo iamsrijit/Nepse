@@ -547,14 +547,15 @@ for _, row in latest_data.iterrows():
     distance_from_low_pct = ((latest_close - low_52w) / low_52w) * 100
     distance_from_high_pct = ((latest_close - high_52w) / high_52w) * 100
     
-    # Add to all_distances (for CSV 2)
+    # Add to all_distances (for CSV 2) - NOW WITH URL
     all_distances.append({
         "Symbol": sym,
         "Latest_Close": round(latest_close, 2),
         "52_Week_Low": round(low_52w, 2),
         "52_Week_High": round(high_52w, 2),
         "Distance_from_Low_%": round(distance_from_low_pct, 2),
-        "Distance_from_High_%": round(distance_from_high_pct, 2)
+        "Distance_from_High_%": round(distance_from_high_pct, 2),
+        "Chart_URL": f"https://nepsealpha.com/nepse-chart?symbol={sym}"
     })
     
     # Check if latest close is within 1.5% of 52-week low (for CSV 1)
@@ -566,7 +567,8 @@ for _, row in latest_data.iterrows():
             "Latest_Close": round(latest_close, 2),
             "52_Week_Low": round(low_52w, 2),
             "Distance_from_Low_%": round(distance_from_low_pct, 2),
-            "Date_at_52W_Low": "N/A"  # Date not available when using CSV columns
+            "Date_at_52W_Low": "N/A",  # Date not available when using CSV columns
+            "Chart_URL": f"https://nepsealpha.com/nepse-chart?symbol={sym}"
         })
 
 # Print statistics
@@ -590,7 +592,8 @@ else:
         "Latest_Close",
         "52_Week_Low", 
         "Distance_from_Low_%",
-        "Date_at_52W_Low"
+        "Date_at_52W_Low",
+        "Chart_URL"
     ])
 
 low_file = f"52_WEEK_LOW_LATEST_{latest_market_date}.csv"
@@ -613,7 +616,8 @@ else:
         "52_Week_Low",
         "52_Week_High",
         "Distance_from_Low_%",
-        "Distance_from_High_%"
+        "Distance_from_High_%",
+        "Chart_URL"
     ])
 
 distance_file = f"52_WEEK_DISTANCE_{latest_market_date}.csv"
