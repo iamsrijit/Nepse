@@ -287,20 +287,33 @@ for sym in df['Symbol'].unique():
         
         # Only add to results if there's a crossover (BUY or SELL signal)
         if crossover_signal in ["BULLISH_CROSS", "BEARISH_CROSS"]:
-            # Calculate weekly percentage change
-            weekly_pct_change = ((current_close - prev_close) / prev_close) * 100
-            
             # Convert signal to Buy/Sell
             signal = "BUY" if crossover_signal == "BULLISH_CROSS" else "SELL"
             
             # Get the date of this week
             crossover_date = weekly_data_2025.index[i].strftime("%Y-%m-%d")
             
+            # Get crossover week close price
+            crossover_close = current_close
+            
+            # Get latest close price from the most recent week
+            latest_close = weekly_data.iloc[-1]['Close']
+            
+            # Calculate P/L percentage based on signal type
+            if signal == "BUY":
+                # For BUY signal, profit if price went up
+                pl_pct = ((latest_close - crossover_close) / crossover_close) * 100
+            else:
+                # For SELL signal, profit if price went down (short position)
+                pl_pct = ((crossover_close - latest_close) / crossover_close) * 100
+            
             ema_crossover_results.append({
                 "Symbol": sym,
                 "Date": crossover_date,
                 "Signal": signal,
-                "Weekly_Change_%": round(weekly_pct_change, 2)
+                "Close_at_Crossover": round(crossover_close, 2),
+                "Latest_Close": round(latest_close, 2),
+                "P/L_%": round(pl_pct, 2)
             })
 
 print(f"✅ Analyzed EMA crossovers - found {len(ema_crossover_results)} signals")
@@ -320,7 +333,7 @@ if ema_crossover_results:
     print(f"  🔴 SELL signals: {sell_signals}")
 else:
     ema_df = pd.DataFrame(columns=[
-        "Symbol", "Date", "Signal", "Weekly_Change_%"
+        "Symbol", "Date", "Signal", "Close_at_Crossover", "Latest_Close", "P/L_%"
     ])
     print("  ℹ️ No crossovers detected this week")
 
