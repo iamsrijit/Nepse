@@ -283,53 +283,48 @@ for sym in df['Symbol'].unique():
     else:
         crossover_signal = "BEARISH"
     
-    # Calculate distance between EMAs
-    ema_distance_pct = ((latest_ema_20 - latest_ema_50) / latest_ema_50) * 100
-    
-    # Price position relative to EMAs
-    price_vs_ema20_pct = ((latest_close - latest_ema_20) / latest_ema_20) * 100
-    price_vs_ema50_pct = ((latest_close - latest_ema_50) / latest_ema_50) * 100
-    
-    ema_crossover_results.append({
-        "Symbol": sym,
-        "Latest_Close": round(latest_close, 2),
-        "EMA_20_Weekly": round(latest_ema_20, 2),
-        "EMA_50_Weekly": round(latest_ema_50, 2),
-        "Signal": crossover_signal,
-        "EMA_Distance_%": round(ema_distance_pct, 2),
-        "Price_vs_EMA20_%": round(price_vs_ema20_pct, 2),
-        "Price_vs_EMA50_%": round(price_vs_ema50_pct, 2),
-        "Weeks_of_Data": len(weekly_data)
-    })
+    # Only add to results if there's a crossover (BUY or SELL signal)
+    if crossover_signal in ["BULLISH_CROSS", "BEARISH_CROSS"]:
+        # Calculate weekly percentage change
+        if len(weekly_data) >= 2:
+            previous_close = previous_week['Close']
+            weekly_pct_change = ((latest_close - previous_close) / previous_close) * 100
+        else:
+            weekly_pct_change = 0
+        
+        # Convert signal to Buy/Sell
+        signal = "BUY" if crossover_signal == "BULLISH_CROSS" else "SELL"
+        
+        # Get the date of the latest week
+        latest_date = weekly_data.index[-1].strftime("%Y-%m-%d")
+        
+        ema_crossover_results.append({
+            "Symbol": sym,
+            "Date": latest_date,
+            "Signal": signal,
+            "Weekly_Change_%": round(weekly_pct_change, 2)
+        })
 
-print(f"✅ Analyzed {len(ema_crossover_results)} symbols for EMA crossovers")
+print(f"✅ Analyzed EMA crossovers - found {len(ema_crossover_results)} signals")
 
 # Create DataFrame and sort
 if ema_crossover_results:
     ema_df = pd.DataFrame(ema_crossover_results)
     
-    # Sort by signal priority: BULLISH_CROSS first, then BEARISH_CROSS, then by EMA distance
-    signal_priority = {"BULLISH_CROSS": 1, "BEARISH_CROSS": 2, "BULLISH": 3, "BEARISH": 4}
-    ema_df['sort_priority'] = ema_df['Signal'].map(signal_priority)
-    ema_df = ema_df.sort_values(['sort_priority', 'EMA_Distance_%'], ascending=[True, False])
-    ema_df = ema_df.drop('sort_priority', axis=1).reset_index(drop=True)
+    # Sort by Date (most recent first), then by Signal (BUY first)
+    ema_df = ema_df.sort_values(['Date', 'Signal'], ascending=[False, True]).reset_index(drop=True)
     
     # Print summary
-    bullish_cross = len(ema_df[ema_df['Signal'] == 'BULLISH_CROSS'])
-    bearish_cross = len(ema_df[ema_df['Signal'] == 'BEARISH_CROSS'])
-    bullish = len(ema_df[ema_df['Signal'] == 'BULLISH'])
-    bearish = len(ema_df[ema_df['Signal'] == 'BEARISH'])
+    buy_signals = len(ema_df[ema_df['Signal'] == 'BUY'])
+    sell_signals = len(ema_df[ema_df['Signal'] == 'SELL'])
     
-    print(f"  🟢 Bullish Crossovers: {bullish_cross}")
-    print(f"  🔴 Bearish Crossovers: {bearish_cross}")
-    print(f"  📈 Currently Bullish: {bullish}")
-    print(f"  📉 Currently Bearish: {bearish}")
+    print(f"  🟢 BUY signals: {buy_signals}")
+    print(f"  🔴 SELL signals: {sell_signals}")
 else:
     ema_df = pd.DataFrame(columns=[
-        "Symbol", "Latest_Close", "EMA_20_Weekly", "EMA_50_Weekly", 
-        "Signal", "EMA_Distance_%", "Price_vs_EMA20_%", "Price_vs_EMA50_%",
-        "Weeks_of_Data"
+        "Symbol", "Date", "Signal", "Weekly_Change_%"
     ])
+    print("  ℹ️ No crossovers detected this week")
 
 # Upload EMA crossover CSV
 ema_file = f"EMA_CROSSOVER_20_50_WEEKLY_{latest_market_date}.csv"
