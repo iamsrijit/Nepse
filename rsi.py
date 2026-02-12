@@ -1,4 +1,3 @@
-# 52_WEEK_LOW_LATEST_WITH_PORTFOLIO_OVERWRITE.py
 # -*- coding: utf-8 -*-
 import os
 import re
@@ -207,6 +206,137 @@ print(f"📅 Latest market date: {latest_market_date}")
 print(f"📈 Total symbols: {df['Symbol'].nunique()}")
 
 # ===========================
+# EMA CROSSOVER ANALYSIS (20 vs 50 on Weekly Data)
+# ===========================
+print("\n" + "="*50)
+print("📊 CALCULATING EMA CROSSOVERS ON WEEKLY DATA")
+print("="*50)
+
+ema_crossover_results = []
+
+def calculate_ema(series, period):
+    """Calculate Exponential Moving Average"""
+    return series.ewm(span=period, adjust=False).mean()
+
+# Process each symbol
+for sym in df['Symbol'].unique():
+    if sym in EXCLUDED_SYMBOLS:
+        continue
+    
+    # Get daily data for this symbol
+    sym_data = df[df['Symbol'] == sym].copy()
+    
+    # Need at least 50 weeks * 5 trading days = 250 data points for reliable 50 EMA
+    if len(sym_data) < 250:
+        continue
+    
+    # Convert daily to weekly data
+    # Set Date as index for resampling
+    sym_data = sym_data.set_index('Date')
+    
+    # Resample to weekly data (W = week ending on Sunday)
+    # We use 'W-THU' to align with Sunday-Thursday trading week
+    weekly_data = sym_data.resample('W-THU').agg({
+        'Close': 'last',  # Last close price of the week (Thursday)
+        'Symbol': 'first'
+    }).dropna()
+    
+    # Need at least 50 weeks of data for 50 EMA
+    if len(weekly_data) < 50:
+        continue
+    
+    # Calculate 20 and 50 period EMAs on weekly data
+    weekly_data['EMA_20'] = calculate_ema(weekly_data['Close'], 20)
+    weekly_data['EMA_50'] = calculate_ema(weekly_data['Close'], 50)
+    
+    # Drop NaN values from EMA calculation
+    weekly_data = weekly_data.dropna()
+    
+    if len(weekly_data) < 2:
+        continue
+    
+    # Get the latest two weeks to detect crossover
+    latest_week = weekly_data.iloc[-1]
+    previous_week = weekly_data.iloc[-2]
+    
+    latest_close = latest_week['Close']
+    latest_ema_20 = latest_week['EMA_20']
+    latest_ema_50 = latest_week['EMA_50']
+    
+    prev_ema_20 = previous_week['EMA_20']
+    prev_ema_50 = previous_week['EMA_50']
+    
+    # Detect crossover
+    crossover_signal = None
+    
+    # Bullish crossover: EMA 20 crosses above EMA 50
+    if prev_ema_20 <= prev_ema_50 and latest_ema_20 > latest_ema_50:
+        crossover_signal = "BULLISH_CROSS"
+    
+    # Bearish crossover: EMA 20 crosses below EMA 50
+    elif prev_ema_20 >= prev_ema_50 and latest_ema_20 < latest_ema_50:
+        crossover_signal = "BEARISH_CROSS"
+    
+    # Current position (no recent crossover)
+    elif latest_ema_20 > latest_ema_50:
+        crossover_signal = "BULLISH"
+    else:
+        crossover_signal = "BEARISH"
+    
+    # Calculate distance between EMAs
+    ema_distance_pct = ((latest_ema_20 - latest_ema_50) / latest_ema_50) * 100
+    
+    # Price position relative to EMAs
+    price_vs_ema20_pct = ((latest_close - latest_ema_20) / latest_ema_20) * 100
+    price_vs_ema50_pct = ((latest_close - latest_ema_50) / latest_ema_50) * 100
+    
+    ema_crossover_results.append({
+        "Symbol": sym,
+        "Latest_Close": round(latest_close, 2),
+        "EMA_20_Weekly": round(latest_ema_20, 2),
+        "EMA_50_Weekly": round(latest_ema_50, 2),
+        "Signal": crossover_signal,
+        "EMA_Distance_%": round(ema_distance_pct, 2),
+        "Price_vs_EMA20_%": round(price_vs_ema20_pct, 2),
+        "Price_vs_EMA50_%": round(price_vs_ema50_pct, 2),
+        "Weeks_of_Data": len(weekly_data)
+    })
+
+print(f"✅ Analyzed {len(ema_crossover_results)} symbols for EMA crossovers")
+
+# Create DataFrame and sort
+if ema_crossover_results:
+    ema_df = pd.DataFrame(ema_crossover_results)
+    
+    # Sort by signal priority: BULLISH_CROSS first, then BEARISH_CROSS, then by EMA distance
+    signal_priority = {"BULLISH_CROSS": 1, "BEARISH_CROSS": 2, "BULLISH": 3, "BEARISH": 4}
+    ema_df['sort_priority'] = ema_df['Signal'].map(signal_priority)
+    ema_df = ema_df.sort_values(['sort_priority', 'EMA_Distance_%'], ascending=[True, False])
+    ema_df = ema_df.drop('sort_priority', axis=1).reset_index(drop=True)
+    
+    # Print summary
+    bullish_cross = len(ema_df[ema_df['Signal'] == 'BULLISH_CROSS'])
+    bearish_cross = len(ema_df[ema_df['Signal'] == 'BEARISH_CROSS'])
+    bullish = len(ema_df[ema_df['Signal'] == 'BULLISH'])
+    bearish = len(ema_df[ema_df['Signal'] == 'BEARISH'])
+    
+    print(f"  🟢 Bullish Crossovers: {bullish_cross}")
+    print(f"  🔴 Bearish Crossovers: {bearish_cross}")
+    print(f"  📈 Currently Bullish: {bullish}")
+    print(f"  📉 Currently Bearish: {bearish}")
+else:
+    ema_df = pd.DataFrame(columns=[
+        "Symbol", "Latest_Close", "EMA_20_Weekly", "EMA_50_Weekly", 
+        "Signal", "EMA_Distance_%", "Price_vs_EMA20_%", "Price_vs_EMA50_%",
+        "Weeks_of_Data"
+    ])
+
+# Upload EMA crossover CSV
+ema_file = f"EMA_CROSSOVER_20_50_WEEKLY_{latest_market_date}.csv"
+upload_to_github(ema_file, ema_df.to_csv(index=False))
+delete_old_files("EMA_CROSSOVER_20_50_WEEKLY_", ema_file)
+
+# ===========================
 # 52-WEEK LOW & HIGH ANALYSIS
 # ===========================
 signals_threshold = []  # Stocks within 1.5% of 52-week low
@@ -403,4 +533,11 @@ portfolio_file = f"PORTFOLIO_REPORT_{latest_market_date}.csv"
 upload_to_github(portfolio_file, portfolio_df.to_csv(index=False))
 delete_old_files("PORTFOLIO_REPORT_", portfolio_file)
 
-print("✅ DONE — 52-Week Low, 52-Week Distance & Portfolio dated, old files cleaned")
+print("\n" + "="*50)
+print("✅ DONE — All reports generated and uploaded")
+print("="*50)
+print("📁 Files created:")
+print(f"  • {ema_file}")
+print(f"  • {low_file}")
+print(f"  • {distance_file}")
+print(f"  • {portfolio_file}")
