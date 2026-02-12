@@ -255,55 +255,53 @@ for sym in df['Symbol'].unique():
     if len(weekly_data) < 2:
         continue
     
-    # Get the latest two weeks to detect crossover
-    latest_week = weekly_data.iloc[-1]
-    previous_week = weekly_data.iloc[-2]
+    # Filter to only check data from 2025 onwards
+    cutoff_date = pd.Timestamp('2025-01-01')
+    weekly_data_2025 = weekly_data[weekly_data.index >= cutoff_date].copy()
     
-    latest_close = latest_week['Close']
-    latest_ema_20 = latest_week['EMA_20']
-    latest_ema_50 = latest_week['EMA_50']
+    if len(weekly_data_2025) < 2:
+        continue
     
-    prev_ema_20 = previous_week['EMA_20']
-    prev_ema_50 = previous_week['EMA_50']
-    
-    # Detect crossover
-    crossover_signal = None
-    
-    # Bullish crossover: EMA 20 crosses above EMA 50
-    if prev_ema_20 <= prev_ema_50 and latest_ema_20 > latest_ema_50:
-        crossover_signal = "BULLISH_CROSS"
-    
-    # Bearish crossover: EMA 20 crosses below EMA 50
-    elif prev_ema_20 >= prev_ema_50 and latest_ema_20 < latest_ema_50:
-        crossover_signal = "BEARISH_CROSS"
-    
-    # Current position (no recent crossover)
-    elif latest_ema_20 > latest_ema_50:
-        crossover_signal = "BULLISH"
-    else:
-        crossover_signal = "BEARISH"
-    
-    # Only add to results if there's a crossover (BUY or SELL signal)
-    if crossover_signal in ["BULLISH_CROSS", "BEARISH_CROSS"]:
-        # Calculate weekly percentage change
-        if len(weekly_data) >= 2:
-            previous_close = previous_week['Close']
-            weekly_pct_change = ((latest_close - previous_close) / previous_close) * 100
-        else:
-            weekly_pct_change = 0
+    # Detect all crossovers from 2025 onwards
+    for i in range(1, len(weekly_data_2025)):
+        current_week = weekly_data_2025.iloc[i]
+        previous_week = weekly_data_2025.iloc[i-1]
         
-        # Convert signal to Buy/Sell
-        signal = "BUY" if crossover_signal == "BULLISH_CROSS" else "SELL"
+        current_close = current_week['Close']
+        current_ema_20 = current_week['EMA_20']
+        current_ema_50 = current_week['EMA_50']
         
-        # Get the date of the latest week
-        latest_date = weekly_data.index[-1].strftime("%Y-%m-%d")
+        prev_ema_20 = previous_week['EMA_20']
+        prev_ema_50 = previous_week['EMA_50']
+        prev_close = previous_week['Close']
         
-        ema_crossover_results.append({
-            "Symbol": sym,
-            "Date": latest_date,
-            "Signal": signal,
-            "Weekly_Change_%": round(weekly_pct_change, 2)
-        })
+        crossover_signal = None
+        
+        # Bullish crossover: EMA 20 crosses above EMA 50
+        if prev_ema_20 <= prev_ema_50 and current_ema_20 > current_ema_50:
+            crossover_signal = "BULLISH_CROSS"
+        
+        # Bearish crossover: EMA 20 crosses below EMA 50
+        elif prev_ema_20 >= prev_ema_50 and current_ema_20 < current_ema_50:
+            crossover_signal = "BEARISH_CROSS"
+        
+        # Only add to results if there's a crossover (BUY or SELL signal)
+        if crossover_signal in ["BULLISH_CROSS", "BEARISH_CROSS"]:
+            # Calculate weekly percentage change
+            weekly_pct_change = ((current_close - prev_close) / prev_close) * 100
+            
+            # Convert signal to Buy/Sell
+            signal = "BUY" if crossover_signal == "BULLISH_CROSS" else "SELL"
+            
+            # Get the date of this week
+            crossover_date = weekly_data_2025.index[i].strftime("%Y-%m-%d")
+            
+            ema_crossover_results.append({
+                "Symbol": sym,
+                "Date": crossover_date,
+                "Signal": signal,
+                "Weekly_Change_%": round(weekly_pct_change, 2)
+            })
 
 print(f"✅ Analyzed EMA crossovers - found {len(ema_crossover_results)} signals")
 
