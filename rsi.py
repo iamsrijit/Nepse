@@ -18,6 +18,7 @@ PORTFOLIO_FILE = "portfolio_trades.csv"
 # Symbols to exclude from 52-week low analysis
 EXCLUDED_SYMBOLS = [
     "EBLD852",
+    "EBL",
     "EB89",
     "NABILD2089",
     "MBLD2085",
@@ -27,8 +28,10 @@ EXCLUDED_SYMBOLS = [
     "NIMBD90",
     "RBBD2088",
     "CCBD88",
+    "ULBSL",
     "ICFCD88",
     "EBLD91",
+    "ANLB",
     "GBILD84/85",
     "GBILD86/87",
     "NICD88",
@@ -69,112 +72,7 @@ EXCLUDED_SYMBOLS = [
 "SFEF",
 "SIGS2",
 "SIGS3",
-"SLCF",
-    "HEIP",
-"HIDCLP",
-"NIMBPO",
-"NLICLP",
-"RBCLPO",
-"C30MF",
-"CCBD88",
-"CMF2",
-"EBLD85",
-"EBLD91",
-"EBLEB89",
-"ENL",
-"GBBD85",
-"GBIMESY2",
-"GIBF1",
-"GSY",
-"GWFD83",
-"H8020",
-"HATHY",
-"HIDCL",
-"HIDCLP",
-"HLICF",
-"JBBD87",
-"KDBY",
-"KEF",
-"KSY",
-"LUK",
-"LVF2",
-"MBLD2085",
-"MBLEF",
-"MMF1",
-"MNMF1",
-"NABILD2089",
-"NBF2",
-"NBF3",
-"NBLD87",
-"NIBD2082",
-"NIBLGF",
-"NIBLSTF",
-"NIBSF2",
-"NICAD2091",
-    "PCBLP",
-"CZBILP",
-"HBLD83",
-"NLICP",
-"KBLPO",
-"JBLBP",
-"KMCDB",
-"ICFCD83",
-"ADBLD83",
-"GILB",
-"GWFD83",
-    "NIBD2082",
-"RBBD83",
-"SRBLD83",
-"SBID83",
-"RBBF40",
-"PBLD84",
-"GBBD85",
-"HBLD86",
-"SAND2085",
-"PBLD86",
-"NICAD2091",
-"CIZBD86",
-"EBLD85",
-"NMBD87/88",
-"PBD84",
-"NICAD85/86",
-"SBD87",
-"NBBD2085",
-"NBLD82",
-"NIBD84",
-"BOKD86KA",
-"NCCD86",
-"EBLEB89",
-"SBIBD86",
-"KSBBLD87",
-"MLBLD89",
-"NIFRAGED",
-"BOKD86",
-"PBLD87",
-"NMBD2085",
-"NBLD87",
-"MBLD87",
-"JBBD87",
-"RBCLPO",
-"SDBD87",
-"NMBMF",
-"SBD89",
-"PBD88",
-"CBLD88",
-"KBLD89",
-"NMBD89/90",
-"LBBLD89",
-"C30MF",
-"NABILD87",
-"CIZBD90",
-"LBLD88",
-"SBLD89",
-"KBLD86",
-"MLBLPO",
-"KBLD90",
-"PROFLP"
-
-
+"SLCF"
 
 ]
 
@@ -547,15 +445,14 @@ for _, row in latest_data.iterrows():
     distance_from_low_pct = ((latest_close - low_52w) / low_52w) * 100
     distance_from_high_pct = ((latest_close - high_52w) / high_52w) * 100
     
-    # Add to all_distances (for CSV 2) - NOW WITH URL
+    # Add to all_distances (for CSV 2)
     all_distances.append({
         "Symbol": sym,
         "Latest_Close": round(latest_close, 2),
         "52_Week_Low": round(low_52w, 2),
         "52_Week_High": round(high_52w, 2),
         "Distance_from_Low_%": round(distance_from_low_pct, 2),
-        "Distance_from_High_%": round(distance_from_high_pct, 2),
-        "Chart_URL": f"https://nepsealpha.com/nepse-chart?symbol={sym}"
+        "Distance_from_High_%": round(distance_from_high_pct, 2)
     })
     
     # Check if latest close is within 1.5% of 52-week low (for CSV 1)
@@ -567,8 +464,7 @@ for _, row in latest_data.iterrows():
             "Latest_Close": round(latest_close, 2),
             "52_Week_Low": round(low_52w, 2),
             "Distance_from_Low_%": round(distance_from_low_pct, 2),
-            "Date_at_52W_Low": "N/A",  # Date not available when using CSV columns
-            "Chart_URL": f"https://nepsealpha.com/nepse-chart?symbol={sym}"
+            "Date_at_52W_Low": "N/A"  # Date not available when using CSV columns
         })
 
 # Print statistics
@@ -592,8 +488,7 @@ else:
         "Latest_Close",
         "52_Week_Low", 
         "Distance_from_Low_%",
-        "Date_at_52W_Low",
-        "Chart_URL"
+        "Date_at_52W_Low"
     ])
 
 low_file = f"52_WEEK_LOW_LATEST_{latest_market_date}.csv"
@@ -616,8 +511,7 @@ else:
         "52_Week_Low",
         "52_Week_High",
         "Distance_from_Low_%",
-        "Distance_from_High_%",
-        "Chart_URL"
+        "Distance_from_High_%"
     ])
 
 distance_file = f"52_WEEK_DISTANCE_{latest_market_date}.csv"
