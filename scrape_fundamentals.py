@@ -67,11 +67,11 @@ def clean_numeric(value):
         return None
 
 # ===========================
-# SELENIUM SETUP (Standard for GitHub Actions)
+# SELENIUM SETUP
 # ===========================
 def get_driver():
     options = Options()
-    options.add_argument('--headless=new')  # Modern headless mode
+    options.add_argument('--headless=new')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-gpu')
@@ -98,6 +98,29 @@ def extract_data_selenium(ticker, url, xpath_dict):
     return results
 
 # ===========================
+# DERIVED RATIO CALCULATORS
+# ===========================
+def calc_roe(row):
+    """ROE = EPS (Trailing) / Book Value per Share (Latest)"""
+    eps  = row.get("EPS (Trailing)")
+    bvps = row.get("Book Value per Share (Latest)")
+    if pd.notna(eps) and pd.notna(bvps) and bvps != 0:
+        return round(eps / bvps, 4)
+    return None
+
+def calc_de(row):
+    """D/E = Total Liabilities (Latest) / Equity
+       where Equity = Total Assets (Latest) - Total Liabilities (Latest)
+    """
+    liab   = row.get("Total Liabilities (Latest)")
+    assets = row.get("Total Assets (Latest)")
+    if pd.notna(liab) and pd.notna(assets):
+        equity = assets - liab
+        if equity != 0:
+            return round(liab / equity, 4)
+    return None
+
+# ===========================
 # MAIN
 # ===========================
 print("Fetching live tickers from NEPSE...")
@@ -120,7 +143,7 @@ print(f"Found {len(ticker_list)} active tickers.\n")
 url_prefix = "https://www.onlinekhabar.com/markets/ticker/"
 
 xpath_dict = {
-       "Stock Name": "/html/body/div[1]/div/section/main/div/div/section[3]/article/div/p",
+    "Stock Name": "/html/body/div[1]/div/section/main/div/div/section[3]/article/div/p",
     "Ticker": "/html/body/div[1]/div/section/main/div/div/section[4]/article/div/div[1]/p[1]",
     "Sector": '//*[@id="sector"]',
     "Today's Price": "/html/body/div/div/section/main/div/div/section[4]/article/div/div[1]/p[2]",
@@ -134,8 +157,6 @@ xpath_dict = {
     "EPS (Trailing)": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[2]/td[2]",
     "P/E Ratio": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[4]/td[2]",
     "P/B Ratio": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[1]/article/table/tbody/tr[5]/td[2]",
-    # "RSI": "/html/body/div[1]/div/section/main/div/section[2]/div[1]/section[1]/div[2]/article/table/tbody/tr[1]/td[2]",
-    # "ROE": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[4]/td[2]/span",
 
     "Total Revenue (Latest Quarter)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[2]/span",
     "Total Revenue (Previous Quarter)": "/html/body/div[1]/div/section/main/div/section[2]/div[3]/section[4]/article/div/div[2]/div/div/div/div/div/div/div/table/tbody/tr[2]/td[3]/span",
@@ -184,22 +205,49 @@ for ticker in ticker_list:
 
 df = pd.DataFrame(results)
 
+# ===========================
+# CLEAN SCRAPED NUMERIC COLS
+# ===========================
 numeric_cols = [
-    "EPS", "PE ratio", "PB ratio", "RSI",
-    "T Rev L", "T Rev P", "Gross Profit L", "Gross Profit P",
-    "Net Profit L", "Net Profit P", "% change in Net Profit",
-    "Eps Annualized L", "Eps Annualized P",
-    "Book Value Per Share L", "Book Value Per Share P",
-    "Total Asset L", "Total Asset P",
-    "Total Liabilities L", "Total Liabilities P",
-    "Paid Up Capital L", "Paid Up Capital P",
-    "Reserves L", "Reserves P"
+    "EPS (Trailing)",
+    "P/E Ratio",
+    "P/B Ratio",
+    "Total Revenue (Latest Quarter)",
+    "Total Revenue (Previous Quarter)",
+    "Gross Profit (Latest)",
+    "Gross Profit (Previous)",
+    "Net Profit (Latest)",
+    "Net Profit (Previous)",
+    "Annualized EPS (Latest)",
+    "Annualized EPS (Previous)",
+    "Book Value per Share (Latest)",
+    "Book Value per Share (Previous)",
+    "Total Assets (Latest)",
+    "Total Assets (Previous)",
+    "Total Liabilities (Latest)",
+    "Total Liabilities (Previous)",
+    "Paid-up Capital (Latest)",
+    "Paid-up Capital (Previous)",
+    "Reserves (Latest)",
+    "Reserves (Previous)",
 ]
 
 for col in numeric_cols:
     if col in df.columns:
         df[col] = df[col].apply(clean_numeric)
 
+# ===========================
+# CALCULATE DERIVED RATIOS
+# ===========================
+df["ROE"]       = df.apply(calc_roe, axis=1)   # EPS / BVPS
+df["D/E Ratio"] = df.apply(calc_de,  axis=1)   # Liabilities / (Assets - Liabilities)
+
+print(f"ROE    computed for {df['ROE'].notna().sum()} / {len(df)} stocks")
+print(f"D/E    computed for {df['D/E Ratio'].notna().sum()} / {len(df)} stocks")
+
+# ===========================
+# SAVE & UPLOAD
+# ===========================
 csv_content = df.to_csv(index=False)
 with open(FUNDAMENTAL_FILE, "w", encoding="utf-8") as f:
     f.write(csv_content)
