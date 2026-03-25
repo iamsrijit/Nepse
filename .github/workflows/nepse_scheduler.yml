@@ -49,4 +49,3 @@ jobs:
           done
           git diff-index --quiet HEAD || git commit -m "Auto-cleanup"
           git push origin main
-
