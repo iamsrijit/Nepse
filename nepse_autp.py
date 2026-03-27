@@ -80,16 +80,9 @@ live_52 = (
          .set_index('Symbol')[['52High', '52Low']]
 )
 
-if not first.empty:
-    day_name  = datetime.now().strftime('%A')
-    file_name = f"nepse_{day_name}.csv"
-    first_out = first.copy()
-    first_out['Date'] = first_out['Date'].apply(
-        lambda d: format_date(d) if pd.notna(d) else '')
-    first_out.to_csv(file_name, index=False, columns=STANDARD_COLS)
-    print(f"Today's data saved to '{file_name}'")
-else:
+if first.empty:
     print("No data available from NEPSE API today.")
+    raise SystemExit(1)
 
 # ════════════════════════════════════════════════════════════════════════════
 # STEP 2 – Read latest historical espen_ file from GitHub
@@ -167,10 +160,7 @@ finall_df['Date'] = finall_df['Date'].apply(format_date)
 
 # Ensure column order
 finall_df = finall_df[STANDARD_COLS]
-
-output_file = 'combined_data.csv'
-finall_df.to_csv(output_file, index=False)
-print(f"\nCombined data saved to '{output_file}' ({len(finall_df)} rows)")
+print(f"\nCombined data ready ({len(finall_df)} rows)")
 print(finall_df.head(10).to_string(index=False))
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -283,10 +273,8 @@ results = Parallel(n_jobs=-1)(
     for sym, grp in data.groupby('Symbol')
 )
 all_valid = pd.concat(results).reset_index(drop=True)
-all_valid.to_csv('valid_ema_crossovers.csv', index=False)
 
 combinedd_df = all_valid.sort_values('Date', ascending=False).drop_duplicates('Symbol')
-combinedd_df.to_csv('latest_valid_ema_crossovers.csv', index=False)
 print("\nLatest EMA crossover signals:")
 print(combinedd_df[['Symbol', 'Date', 'Close']].to_string(index=False))
 
@@ -297,5 +285,22 @@ github_put(f'EMA_Cross_for_{today_str}.csv', combinedd_df)
 print("\nCleaning up old files from GitHub …")
 delete_old_github_files('espen_',         keep=1)
 delete_old_github_files('EMA_Cross_for_', keep=1)
+
+# ── One-time cleanup: remove any junk CSVs previously pushed to GitHub ────────
+JUNK_PATTERNS = [r'^nepse_\w+\.csv$', r'^combined_data\.csv$',
+                 r'^valid_ema_crossovers\.csv$', r'^latest_valid_ema_crossovers\.csv$']
+
+headers  = {'Authorization': f'token {GH_TOKEN}'}
+r = requests.get(f'https://api.github.com/repos/{GITHUB_REPO}/contents/', headers=headers, timeout=15)
+if r.status_code == 200:
+    for f in r.json():
+        if isinstance(f, dict) and any(re.match(p, f.get('name', '')) for p in JUNK_PATTERNS):
+            dr = requests.delete(f['url'], headers=headers, timeout=15,
+                                 json={'message': f'Cleanup: remove {f["name"]}',
+                                       'sha': f['sha'], 'branch': 'main'})
+            if dr.status_code == 200:
+                print(f"Removed from GitHub: {f['name']}")
+            else:
+                print(f"Could not remove {f['name']}: {dr.status_code}")
 
 print("\nDone.")
