@@ -195,6 +195,46 @@ def github_put(file_name: str, df: pd.DataFrame):
     else:
         print(f"Upload failed ({resp.status_code}): {resp.text}")
 
+
+def delete_old_github_files(prefix: str, keep: int = 1):
+    """
+    List all files in the repo root matching `prefix*.csv`,
+    sort them by name descending (newest date first),
+    and delete all but the `keep` most recent via the GitHub API.
+    """
+    headers  = {'Authorization': f'token {GH_TOKEN}'}
+    list_url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/'
+
+    r = requests.get(list_url, headers=headers, timeout=15)
+    if r.status_code != 200:
+        print(f"Could not list repo contents: {r.status_code}")
+        return
+
+    all_files = r.json()                          # list of file objects
+    matched   = sorted(
+        [f for f in all_files
+         if isinstance(f, dict)
+         and f.get('name', '').startswith(prefix)
+         and f.get('name', '').endswith('.csv')],
+        key=lambda f: f['name'],
+        reverse=True                              # newest date string first
+    )
+
+    to_delete = matched[keep:]                   # everything beyond the first `keep`
+    for f in to_delete:
+        del_url = f['url']                        # already includes sha as query param
+        sha     = f['sha']
+        payload = {
+            'message': f'Auto-cleanup: remove old {f["name"]}',
+            'sha':     sha,
+            'branch':  'main'
+        }
+        dr = requests.delete(del_url, headers=headers, json=payload, timeout=15)
+        if dr.status_code == 200:
+            print(f"Deleted old file: {f['name']}")
+        else:
+            print(f"Failed to delete {f['name']}: {dr.status_code} {dr.text}")
+
 today_str  = datetime.today().strftime('%Y-%m-%d')
 github_put(f'espen_{today_str}.csv', finall_df)
 
@@ -252,5 +292,10 @@ print(combinedd_df[['Symbol', 'Date', 'Close']].to_string(index=False))
 
 # ── Upload EMA file ──────────────────────────────────────────────────────────
 github_put(f'EMA_Cross_for_{today_str}.csv', combinedd_df)
+
+# ── Delete old files (keep only the latest 1 of each type) ───────────────────
+print("\nCleaning up old files from GitHub …")
+delete_old_github_files('espen_',         keep=1)
+delete_old_github_files('EMA_Cross_for_', keep=1)
 
 print("\nDone.")
