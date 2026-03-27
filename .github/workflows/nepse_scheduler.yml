@@ -1,4 +1,4 @@
-name: NEPSE Daily Automation
+name: NEPSE Daily Automation Jan
 
 on:
   schedule:
