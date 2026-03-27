@@ -19,10 +19,13 @@ from nepse_scraper import Nepse_scraper
 # ===========================
 # GITHUB CONFIG
 # ===========================
+# ===========================
+# GITHUB CONFIG
+# ===========================
 REPO_OWNER = "iamsrijit"
 REPO_NAME = "Nepse"
 BRANCH = "main"
-FUNDAMENTAL_FILE = f"Fundamental_{datetime.now().strftime('%Y-%m-%d')}.csv"
+FUNDAMENTAL_FILE = f"Fundamental/Fundamental_{datetime.now().strftime('%Y-%m-%d')}.csv"  # ← updated
 
 GH_TOKEN = os.environ.get("GH_TOKEN")
 if not GH_TOKEN:
