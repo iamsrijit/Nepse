@@ -33,8 +33,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull origin main --rebase   # sync any commits the Python script made via API
-          git add nepse_*.csv combined_data.csv valid_ema_crossovers.csv latest_valid_ema_crossovers.csv || true
-          git diff-index --quiet HEAD || git commit -m "Auto-update: $(date +'%Y-%m-%d')"
+          git pull origin main --rebase
           git remote set-url origin https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}
-          git push origin main
+          # No local CSVs to commit — all uploads handled via GitHub API in the Python script
