@@ -3,8 +3,8 @@ name: Scrape NEPSE Fundamentals & Upload CSV
 
 on:
   schedule:
-    # Every Saturday at 7:00 AM Nepal time
-    - cron: '15 1 * * 6'
+    # Every Friday at 6:11 PM Nepal time (12:26 UTC)
+    - cron: '26 12 * * 5'
   workflow_dispatch:
 
 jobs:
