@@ -83,6 +83,18 @@ def get_exclusion_reason(sym):
 
     return None
 
+def find_date_at_52w_low(sym, low_52w):
+    """Most recent date within the last 365 days where the stock touched its 52-week low.
+    Returns 'N/A' if the history in the CSV doesn't contain it."""
+    s = df[df["Symbol"] == sym]
+    s = s[s["Date"] >= df["Date"].max() - pd.Timedelta(days=365)]
+    col = "Low" if "Low" in s.columns else "Close"
+    vals = pd.to_numeric(s[col], errors="coerce")
+    hit = s[vals <= low_52w * 1.0005]
+    if hit.empty:
+        return "N/A"
+    return hit["Date"].max().strftime("%Y-%m-%d")
+
 GH_TOKEN = os.environ.get("GH_TOKEN")
 if not GH_TOKEN:
     raise RuntimeError("GH_TOKEN not set in environment")
@@ -309,6 +321,9 @@ for _, row in latest_data.iterrows():
     if latest_close == 0:
         continue
 
+    trade_date = row['Date'].strftime("%Y-%m-%d")  # date of the latest close
+    date_at_low = find_date_at_52w_low(sym, low_52w)
+
     # Calculate distances
     distance_from_low_pct = ((latest_close - low_52w) / low_52w) * 100
     distance_from_high_pct = ((latest_close - high_52w) / high_52w) * 100
@@ -316,11 +331,13 @@ for _, row in latest_data.iterrows():
     # Add to all_distances (for CSV 2)
     all_distances.append({
         "Symbol": sym,
+        "Date": trade_date,
         "Latest_Close": round(latest_close, 2),
         "52_Week_Low": round(low_52w, 2),
         "52_Week_High": round(high_52w, 2),
         "Distance_from_Low_%": round(distance_from_low_pct, 2),
-        "Distance_from_High_%": round(distance_from_high_pct, 2)
+        "Distance_from_High_%": round(distance_from_high_pct, 2),
+        "Date_at_52W_Low": date_at_low
     })
 
     # Check if latest close is within 1.5% of 52-week low (for CSV 1)
@@ -329,10 +346,11 @@ for _, row in latest_data.iterrows():
     if latest_close <= threshold:
         signals_threshold.append({
             "Symbol": sym,
+            "Date": trade_date,
             "Latest_Close": round(latest_close, 2),
             "52_Week_Low": round(low_52w, 2),
             "Distance_from_Low_%": round(distance_from_low_pct, 2),
-            "Date_at_52W_Low": "N/A"  # Date not available when using CSV columns
+            "Date_at_52W_Low": date_at_low
         })
 
 # Print statistics
@@ -356,6 +374,7 @@ if signals_threshold:
 else:
     signals_df = pd.DataFrame(columns=[
         "Symbol",
+        "Date",
         "Latest_Close",
         "52_Week_Low",
         "Distance_from_Low_%",
@@ -378,11 +397,13 @@ if all_distances:
 else:
     distance_df = pd.DataFrame(columns=[
         "Symbol",
+        "Date",
         "Latest_Close",
         "52_Week_Low",
         "52_Week_High",
         "Distance_from_Low_%",
-        "Distance_from_High_%"
+        "Distance_from_High_%",
+        "Date_at_52W_Low"
     ])
 
 distance_file = f"52_WEEK_DISTANCE_{latest_market_date}.csv"
