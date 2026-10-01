@@ -16,7 +16,7 @@ REPO_NAME = "Nepse"
 BRANCH = "main"
 PORTFOLIO_FILE = "portfolio_trades.csv"
 
-# Symbols to exclude from 52-week low analysis
+# Symbols to exclude from 52-week low analysis (manual list, still honoured)
 EXCLUDED_SYMBOLS = [
     "EBLD852",
     "EBL",
@@ -37,6 +37,51 @@ EXCLUDED_SYMBOLS = [
     "GBILD86/87",
     "NICD88"
 ]
+
+# ---------------------------
+# AUTO-FILTER SETTINGS
+# ---------------------------
+# Real companies that happen to match a rule below (e.g. end with P or F)
+# can be listed here so they are never filtered out.
+FORCE_INCLUDE_SYMBOLS = [
+    # "EXAMPLE",
+]
+
+# Known mutual fund symbols WITHOUT digits (those with digits are caught
+# automatically by the digit rule). Add more here if any slip through.
+MUTUAL_FUND_SYMBOLS = {
+    "SEF", "SAGF", "KEF", "LUK", "GSY", "SBCF", "NICBF", "NICSF", "NICGF",
+    "SLCF", "PSF", "PRSF", "NBF", "NBLSF", "SFMF", "CMF", "RMF", "GIBF",
+    "SIGS", "NMBHF", "LVF", "NIBLSF", "NSIF", "NMBSBFE", "NIBLGF",
+}
+
+def get_exclusion_reason(sym):
+    """Return a reason string if the symbol should be excluded, else None."""
+    s = str(sym).strip().upper()
+
+    if s in FORCE_INCLUDE_SYMBOLS:
+        return None
+    if s in EXCLUDED_SYMBOLS:
+        return "manual"
+
+    # Promoter shares: IGIPO, ...PO  and ...P
+    if s.endswith("PO") or s.endswith("P"):
+        return "promoter"
+
+    # Debentures / bonds / numbered mutual funds: NMBD208, SBID89,
+    # NIBSF2, NMB50, GBILD84/85 ... (any digit or slash in the symbol)
+    if re.search(r"[0-9/]", s):
+        return "debenture/bond/mutual fund"
+
+    # Mutual funds without digits
+    if s in MUTUAL_FUND_SYMBOLS:
+        return "mutual fund"
+
+    # Safety net: symbols ending in F (e.g. NICSF, SLCF) are almost always funds
+    if s.endswith("F"):
+        return "mutual fund"
+
+    return None
 
 GH_TOKEN = os.environ.get("GH_TOKEN")
 if not GH_TOKEN:
@@ -91,7 +136,7 @@ def get_latest_espen_csv():
     url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents"
     r = requests.get(url, headers=HEADERS, params={"ref": BRANCH})
     r.raise_for_status()
-    
+
     # Find all espen_*.csv files
     espen_files = {}
     for f in r.json():
@@ -100,14 +145,14 @@ def get_latest_espen_csv():
             m = re.search(r"espen_(\d{4}-\d{2}-\d{2})\.csv", name)
             if m:
                 espen_files[m.group(1)] = name
-    
+
     if not espen_files:
         raise FileNotFoundError("No espen_*.csv file found")
-    
+
     # Get the latest date
     latest_date = max(espen_files.keys())
     latest_file = espen_files[latest_date]
-    
+
     print(f"📂 Using market data file: {latest_file}")
     return github_raw(latest_file)
 
@@ -161,7 +206,6 @@ print(f"📊 Loaded {len(df)} rows")
 print(f"📋 Column names: {list(df.columns)}")
 print(f"📋 First column name repr: {repr(df.columns[0])}")
 
-# Now we can safely access the columns
 # Verify 'Date' column exists
 if 'Date' not in df.columns:
     print("❌ ERROR: 'Date' column not found!")
@@ -198,6 +242,7 @@ if parsed_count == 0:
 
 df["Close"] = pd.to_numeric(df["Close"], errors='coerce')
 df = df.dropna(subset=["Symbol", "Date", "Close"])
+df["Symbol"] = df["Symbol"].astype(str).str.strip()
 df = df.sort_values(["Symbol", "Date"])
 
 latest_market_date = df["Date"].max().strftime("%Y-%m-%d")
@@ -212,10 +257,6 @@ print(f"📈 Total symbols: {df['Symbol'].nunique()}")
 signals_threshold = []  # Stocks within 1.5% of 52-week low
 all_distances = []  # All stocks with distance from low and high
 
-# Print excluded symbols if any
-if EXCLUDED_SYMBOLS:
-    print(f"⚠️ Excluding {len(EXCLUDED_SYMBOLS)} symbols")
-
 # Check if 52High and 52Low columns exist in the CSV
 has_52w_columns = '52High' in df.columns and '52Low' in df.columns
 
@@ -225,17 +266,20 @@ if not has_52w_columns:
 
 symbols_with_52w_data = []
 symbols_without_52w_data = []
+excluded_log = {}  # symbol -> reason
 
 # Get the latest data for each symbol (most recent date)
 latest_data = df.sort_values('Date').groupby('Symbol').last().reset_index()
 
 for _, row in latest_data.iterrows():
     sym = row['Symbol']
-    
-    # Skip excluded symbols
-    if sym in EXCLUDED_SYMBOLS:
+
+    # Skip promoter shares, debentures/bonds, mutual funds and manual exclusions
+    reason = get_exclusion_reason(sym)
+    if reason:
+        excluded_log[sym] = reason
         continue
-    
+
     # Get 52-week high and low from the CSV columns
     if has_52w_columns:
         high_52w = pd.to_numeric(row['52High'], errors='coerce')
@@ -245,31 +289,30 @@ for _, row in latest_data.iterrows():
         s = df[df["Symbol"] == sym].copy()
         one_year_ago = df["Date"].max() - pd.Timedelta(days=365)
         s_52w = s[s["Date"] >= one_year_ago]
-        
+
         if len(s_52w) < 10:
             symbols_without_52w_data.append(sym)
             continue
-        
+
         high_52w = s_52w["Close"].max()
         low_52w = s_52w["Close"].min()
-    
+
     # Check if we have valid 52-week data
     if pd.isna(high_52w) or pd.isna(low_52w) or high_52w == 0 or low_52w == 0:
         symbols_without_52w_data.append(sym)
         continue
-    
+
     symbols_with_52w_data.append(sym)
-    
-    # Use latest_close_map to get the close price (same logic as portfolio)
+
     latest_close = latest_close_map.get(sym, 0)
-    
+
     if latest_close == 0:
         continue
-    
+
     # Calculate distances
     distance_from_low_pct = ((latest_close - low_52w) / low_52w) * 100
     distance_from_high_pct = ((latest_close - high_52w) / high_52w) * 100
-    
+
     # Add to all_distances (for CSV 2)
     all_distances.append({
         "Symbol": sym,
@@ -279,10 +322,10 @@ for _, row in latest_data.iterrows():
         "Distance_from_Low_%": round(distance_from_low_pct, 2),
         "Distance_from_High_%": round(distance_from_high_pct, 2)
     })
-    
+
     # Check if latest close is within 1.5% of 52-week low (for CSV 1)
     threshold = low_52w * 1.015  # 1.5% above 52-week low
-    
+
     if latest_close <= threshold:
         signals_threshold.append({
             "Symbol": sym,
@@ -293,6 +336,9 @@ for _, row in latest_data.iterrows():
         })
 
 # Print statistics
+reason_counts = pd.Series(excluded_log).value_counts().to_dict() if excluded_log else {}
+print(f"⚠️ Excluded {len(excluded_log)} symbols: {reason_counts}")
+print(f"🔎 Excluded symbols: {sorted(excluded_log.keys())}")
 print(f"📊 Symbols with 52-week data: {len(symbols_with_52w_data)}")
 print(f"📊 Symbols without 52-week data: {len(symbols_without_52w_data)}")
 print(f"✅ Found {len(signals_threshold)} stocks within 1.5% of 52-week low")
@@ -309,9 +355,9 @@ if signals_threshold:
     )
 else:
     signals_df = pd.DataFrame(columns=[
-        "Symbol", 
+        "Symbol",
         "Latest_Close",
-        "52_Week_Low", 
+        "52_Week_Low",
         "Distance_from_Low_%",
         "Date_at_52W_Low"
     ])
@@ -344,7 +390,7 @@ upload_to_github(distance_file, distance_df.to_csv(index=False))
 delete_old_files("52_WEEK_DISTANCE_", distance_file)
 
 # ===========================
-# PORTFOLIO REPORT
+# PORTFOLIO REPORT (unchanged - your holdings are never filtered)
 # ===========================
 pt = pd.read_csv(github_raw(PORTFOLIO_FILE))
 pt["Date"] = pd.to_datetime(pt["Date"])
