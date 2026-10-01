@@ -385,7 +385,7 @@ _TOP = "/html/body/div[1]/div/section/main/div/div/section[4]/article/div"
 
 xpath_dict = {
     "Stock Name": "/html/body/div[1]/div/section/main/div/div/section[3]/article/div/p",
-    "Ticker": f"{_TOP}/div[1]/p[1]",
+    "Ticker (Page)": f"{_TOP}/div[1]/p[1]",
     "Sector": '//*[@id="sector"]',
     "Today's Price": "/html/body/div/div/section/main/div/div/section[4]/article/div/div[1]/p[2]",
     "Market Cap": f"{_TOP}/div[3]/p[2]",
@@ -438,17 +438,53 @@ def scrape_ticker(ticker):
 # ===========================
 # MAIN
 # ===========================
-print("Fetching live tickers from NEPSE...")
-scraper = Nepse_scraper(verify_ssl=False)
-today_price = scraper.get_today_price()
-content_data = today_price if isinstance(today_price, list) else today_price.get(
-    'content', today_price.get('data', []))
+def tickers_from_nepse():
+    """Primary source: live NEPSE list (retries; the API is flaky / token-based)."""
+    last = None
+    for attempt in range(1, 4):
+        try:
+            scraper = Nepse_scraper(verify_ssl=False)
+            tp = scraper.get_today_price()
+            data = tp if isinstance(tp, list) else tp.get('content', tp.get('data', []))
+            found = sorted({i.get('symbol', '').strip() for i in data
+                            if i.get('symbol') and i.get('symbol').strip()})
+            if found:
+                return found
+        except Exception as e:
+            last = e
+            print(f"  NEPSE attempt {attempt} failed: {e}")
+            time.sleep(3 * attempt)
+    print(f"NEPSE ticker fetch failed ({last})")
+    return []
 
-ticker_list = sorted({
-    item.get('symbol', '').strip()
-    for item in content_data
-    if item.get('symbol') and item.get('symbol').strip()
-})
+
+def tickers_from_repo():
+    """Fallback: tickers from the newest Fundamental_*.csv already in the GitHub repo."""
+    try:
+        r = requests.get(
+            f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/Fundamental",
+            headers=HEADERS, params={"ref": BRANCH}, timeout=30)
+        r.raise_for_status()
+        files = sorted(f["name"] for f in r.json()
+                       if f["name"].startswith("Fundamental_") and f["name"].endswith(".csv"))
+        if not files:
+            return []
+        newest = next(f for f in r.json() if f["name"] == files[-1])
+        raw = requests.get(newest["download_url"], headers=HEADERS, timeout=60)
+        raw.raise_for_status()
+        col = pd.read_csv(StringIO(raw.text))["Ticker"].dropna().astype(str)
+        found = sorted({t.strip().upper() for t in col if re.fullmatch(r"[A-Za-z0-9]{2,12}", t.strip())})
+        print(f"Using {len(found)} tickers from repo file {files[-1]}")
+        return found
+    except Exception as e:
+        print(f"Repo ticker fallback failed: {e}")
+        return []
+
+
+print("Fetching live tickers from NEPSE...")
+ticker_list = tickers_from_nepse() or tickers_from_repo()
+if not ticker_list:
+    raise RuntimeError("No tickers available from NEPSE or from the repo's previous Fundamental file")
 print(f"Found {len(ticker_list)} active tickers.\n")
 
 USE_NEPALIPAISA = allowed_by_robots(NEPALIPAISA_URL, "/company/UNL")
