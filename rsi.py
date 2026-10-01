@@ -95,6 +95,15 @@ def find_date_at_52w_low(sym, low_52w):
         return "N/A"
     return hit["Date"].max().strftime("%Y-%m-%d")
 
+def sort_latest_low_first(frame):
+    """Sort by Date_at_52W_Low, newest first; 'N/A' rows go to the bottom.
+    Ties are broken by closeness to the 52-week low."""
+    frame = frame.copy()
+    frame["_d"] = pd.to_datetime(frame["Date_at_52W_Low"], errors="coerce")
+    frame = frame.sort_values(["_d", "Distance_from_Low_%"],
+                              ascending=[False, True], na_position="last")
+    return frame.drop(columns="_d").reset_index(drop=True)
+
 GH_TOKEN = os.environ.get("GH_TOKEN")
 if not GH_TOKEN:
     raise RuntimeError("GH_TOKEN not set in environment")
@@ -321,7 +330,6 @@ for _, row in latest_data.iterrows():
     if latest_close == 0:
         continue
 
-    trade_date = row['Date'].strftime("%Y-%m-%d")  # date of the latest close
     date_at_low = find_date_at_52w_low(sym, low_52w)
 
     # Calculate distances
@@ -331,7 +339,6 @@ for _, row in latest_data.iterrows():
     # Add to all_distances (for CSV 2)
     all_distances.append({
         "Symbol": sym,
-        "Date": trade_date,
         "Latest_Close": round(latest_close, 2),
         "52_Week_Low": round(low_52w, 2),
         "52_Week_High": round(high_52w, 2),
@@ -346,8 +353,7 @@ for _, row in latest_data.iterrows():
     if latest_close <= threshold:
         signals_threshold.append({
             "Symbol": sym,
-            "Date": trade_date,
-            "Latest_Close": round(latest_close, 2),
+                "Latest_Close": round(latest_close, 2),
             "52_Week_Low": round(low_52w, 2),
             "Distance_from_Low_%": round(distance_from_low_pct, 2),
             "Date_at_52W_Low": date_at_low
@@ -366,15 +372,10 @@ print(f"✅ Found {len(all_distances)} total stocks with 52-week data")
 # CSV 1: Stocks within 1.5% threshold
 # ===========================
 if signals_threshold:
-    signals_df = (
-        pd.DataFrame(signals_threshold)
-        .sort_values("Distance_from_Low_%")
-        .reset_index(drop=True)
-    )
+    signals_df = sort_latest_low_first(pd.DataFrame(signals_threshold))
 else:
     signals_df = pd.DataFrame(columns=[
         "Symbol",
-        "Date",
         "Latest_Close",
         "52_Week_Low",
         "Distance_from_Low_%",
@@ -389,15 +390,10 @@ delete_old_files("52_WEEK_LOW_LATEST_", low_file)
 # CSV 2: All stocks with distance from low and high
 # ===========================
 if all_distances:
-    distance_df = (
-        pd.DataFrame(all_distances)
-        .sort_values("Distance_from_Low_%")
-        .reset_index(drop=True)
-    )
+    distance_df = sort_latest_low_first(pd.DataFrame(all_distances))
 else:
     distance_df = pd.DataFrame(columns=[
         "Symbol",
-        "Date",
         "Latest_Close",
         "52_Week_Low",
         "52_Week_High",
